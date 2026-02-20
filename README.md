@@ -1,6 +1,6 @@
 # 🏏 IPL Advanced Analytics Dashboard
 
-🔗 Live App: https://your-real-link.streamlit.app
+🔗 Live App: https://ipl-analytics-dashboard-mwzrumwthenkfiqsy4jmcf.streamlit.app
 
 
 # 🏏 IPL Advanced Analytics Dashboard
@@ -35,4 +35,5 @@ An interactive IPL analytics dashboard built using Streamlit and Python.
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
+
 
