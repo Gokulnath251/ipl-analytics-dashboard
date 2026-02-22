@@ -190,7 +190,7 @@ with tab4:
 
     top_batsmen = (
         deliveries
-        .groupby('Batsmen')['BatsmanRun']
+        .groupby('Batter')['BatsmanRun']
         .sum()
         .sort_values(ascending=False)
         .head(10)
