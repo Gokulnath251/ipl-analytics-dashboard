@@ -188,9 +188,9 @@ with tab4:
     # Ensure numeric
     deliveries['BatsmanRun'] = pd.to_numeric(deliveries['BatsmanRun'], errors='coerce')
 
-    top_bowlers = (
+    top_batsmen = (
         deliveries
-        .groupby('Bowler')['IsWicketDelivery']
+        .groupby('Batsman')['BatsmanRun']
         .sum()
         .sort_values(ascending=False)
         .head(10)
@@ -225,7 +225,7 @@ with tab4:
 
     deliveries['IsWicketDelivery'] = pd.to_numeric(deliveries['IsWicketDelivery'], errors='coerce')
 
-       top_bowlers = (
+    top_bowlers = (
         deliveries
         .groupby('Bowler')['IsWicketDelivery']
         .sum()
@@ -233,6 +233,8 @@ with tab4:
         .head(10)
         .reset_index()
     )
+
+
     
     top_bowlers['Rank'] = top_bowlers.index + 1
     top_bowlers = top_bowlers[['Rank', 'Bowler', 'IsWicketDelivery']]
@@ -252,6 +254,7 @@ with tab4:
     plt.xticks(rotation=50)
 
     st.pyplot(fig2)
+
 
 
 
