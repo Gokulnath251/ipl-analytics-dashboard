@@ -14,6 +14,8 @@ def load_data():
 
 matches, deliveries = load_data()
 
+st.write(deliveries.columns)
+
 tab1, tab2, tab3, tab4 = st.tabs([
     "📊 Team Analysis",
     "🏏 Batting Analysis",
@@ -21,7 +23,9 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "🏆 Leaderboards"
 ])
 
+st.markdown("---")
 with tab1:
+    
 
     st.header("📊 Team Performance Analysis")
 
@@ -123,6 +127,55 @@ with tab2:
     st.write(f"Dismissals: {dismissals}")
 
 
+ 
+
+    # PHASE-WISE ANALYSIS
+    # -----------------------------
+    st.markdown("---")
+    st.subheader("📊 Phase-wise Performance")
+
+    # Convert Overs to numeric
+    player_data['Overs'] = pd.to_numeric(player_data['Overs'], errors='coerce')
+
+    # Powerplay (1-6)
+    powerplay = player_data[player_data['Overs'] <= 6]
+    powerplay_runs = powerplay['BatsmanRun'].sum()
+
+    # Middle Overs (7-15)
+    middle = player_data[(player_data['Overs'] >= 7) & (player_data['Overs'] <= 15)]
+    middle_runs = middle['BatsmanRun'].sum()
+
+    # Death Overs (16-20)
+    death = player_data[player_data['Overs'] >= 16]
+    death_runs = death['BatsmanRun'].sum()
+
+    # Death strike rate
+    death_balls = death.shape[0]
+    death_strike_rate = (death_runs / death_balls) * 100 if death_balls > 0 else 0
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric("Powerplay Runs (1-6)", int(powerplay_runs))
+    col2.metric("Middle Overs Runs (7-15)", int(middle_runs))
+    col3.metric("Death Overs Runs (16-20)", int(death_runs))
+    col4.metric("Death Strike Rate", f"{death_strike_rate:.2f}")
+
+    import matplotlib.pyplot as plt
+
+    st.subheader("📈 Phase Comparison Chart")
+
+    phases = ["Powerplay (1-6)", "Middle (7-15)", "Death (16-20)"]
+    runs = [powerplay_runs, middle_runs, death_runs]
+
+    fig, ax = plt.subplots()
+    ax.bar(phases, runs)
+    ax.set_ylabel("Total Runs")
+    ax.set_title("Runs by Match Phase")
+
+    st.pyplot(fig)
+
+
+
 # -----------------------------
 # BOWLER ANALYSIS
 # -----------------------------
@@ -177,6 +230,71 @@ with tab3:
     st.write(f"Runs Conceded: {int(runs_conceded)}")
     st.write(f"Overs Bowled: {overs:.2f}")
 
+    # -----------------------------
+    # PHASE-WISE BOWLING ANALYSIS
+    # -----------------------------
+    st.markdown("---")
+    st.subheader("📊 Phase-wise Bowling Performance")
+
+    # Convert Overs to numeric
+    bowler_data['Overs'] = pd.to_numeric(bowler_data['Overs'], errors='coerce')
+
+    # -------- Powerplay (1-6) --------
+    powerplay = bowler_data[bowler_data['Overs'] <= 6]
+    pp_wickets = powerplay['IsWicketDelivery'].sum()
+    pp_runs = powerplay['TotalRun'].sum()
+    pp_balls = powerplay.shape[0]
+    pp_overs = pp_balls / 6
+    pp_economy = (pp_runs / pp_overs) if pp_overs > 0 else 0
+
+    # -------- Middle Overs (7-15) --------
+    middle = bowler_data[(bowler_data['Overs'] >= 7) & (bowler_data['Overs'] <= 15)]
+    mid_wickets = middle['IsWicketDelivery'].sum()
+    mid_runs = middle['TotalRun'].sum()
+    mid_balls = middle.shape[0]
+    mid_overs = mid_balls / 6
+    mid_economy = (mid_runs / mid_overs) if mid_overs > 0 else 0
+
+    # -------- Death Overs (16-20) --------
+    death = bowler_data[bowler_data['Overs'] >= 16]
+    death_wickets = death['IsWicketDelivery'].sum()
+    death_runs = death['TotalRun'].sum()
+    death_balls = death.shape[0]
+    death_overs = death_balls / 6
+    death_economy = (death_runs / death_overs) if death_overs > 0 else 0
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("Powerplay Economy", f"{pp_economy:.2f}")
+    col2.metric("Middle Overs Economy", f"{mid_economy:.2f}")
+    col3.metric("Death Economy", f"{death_economy:.2f}")
+
+    col4, col5, col6 = st.columns(3)
+
+    col4.metric("PP Wickets", int(pp_wickets))
+    col5.metric("Middle Wickets", int(mid_wickets))
+    col6.metric("Death Wickets", int(death_wickets))
+
+    # -----------------------------
+# BOWLING PHASE CHART
+# -----------------------------
+# -----------------------------
+# BOWLING PHASE WICKETS CHART
+# -----------------------------
+    st.markdown("---")
+    st.subheader("📈 Wickets by Match Phase")
+
+    import matplotlib.pyplot as plt
+
+    phases = ["Powerplay", "Middle", "Death"]
+    wickets = [pp_wickets, mid_wickets, death_wickets]
+
+    fig, ax = plt.subplots()
+    ax.bar(phases, wickets)
+    ax.set_ylabel("Total Wickets")
+    ax.set_title("Wickets by Match Phase")
+
+    st.pyplot(fig)
 
 # -----------------------------
 # TOP 10 RUN SCORERS
@@ -193,12 +311,9 @@ with tab4:
         .groupby('Batter')['BatsmanRun']
         .sum()
         .sort_values(ascending=False)
-        .head(10)
+        .head(11)
         .reset_index()
     )
-    
-    top_batsmen['Rank'] = top_batsmen.index + 1
-    top_batsmen = top_batsmen[['Rank', 'Batter', 'BatsmanRun']]
 
     st.dataframe(top_batsmen, use_container_width=True)
 
@@ -212,7 +327,7 @@ with tab4:
     ax.set_ylabel("Total Runs")
     ax.set_title("Top 10 Run Scorers")
 
-    plt.xticks(rotation=55)
+    plt.xticks(rotation=45)
     st.pyplot(fig)
 
 
@@ -230,14 +345,9 @@ with tab4:
         .groupby('Bowler')['IsWicketDelivery']
         .sum()
         .sort_values(ascending=False)
-        .head(10)
+        .head(11)
         .reset_index()
     )
-
-
-    
-    top_bowlers['Rank'] = top_bowlers.index + 1
-    top_bowlers = top_bowlers[['Rank', 'Bowler', 'IsWicketDelivery']]
 
     st.dataframe(top_bowlers, use_container_width=True)
 
@@ -252,12 +362,7 @@ with tab4:
     ax2.set_title("Top 10 Wicket Takers")
 
     plt.xticks(rotation=50)
-
     st.pyplot(fig2)
 
-
-
-
-
-
+  
 
