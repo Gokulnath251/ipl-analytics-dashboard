@@ -212,7 +212,7 @@ with tab4:
     ax.set_ylabel("Total Runs")
     ax.set_title("Top 10 Run Scorers")
 
-    plt.xticks(rotation=45)
+    plt.xticks(rotation=55)
     st.pyplot(fig)
 
 
@@ -254,6 +254,7 @@ with tab4:
     plt.xticks(rotation=50)
 
     st.pyplot(fig2)
+
 
 
 
