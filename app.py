@@ -14,7 +14,6 @@ def load_data():
 
 matches, deliveries = load_data()
 
-st.write(deliveries.columns)
 
 tab1, tab2, tab3, tab4 = st.tabs([
     "📊 Team Analysis",
@@ -365,4 +364,5 @@ with tab4:
     st.pyplot(fig2)
 
   
+
 
