@@ -21,22 +21,6 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "🏆 Leaderboards"
 ])
 
-st.write("Deliveries Columns:")
-st.write(deliveries.columns)
-
-st.subheader("📊 Dataset Overview")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.write("Match Data Shape:", matches.shape)
-    st.dataframe(matches.head())
-
-with col2:
-    st.write("Ball-by-Ball Data Shape:", deliveries.shape)
-    st.dataframe(deliveries.head())
-
-st.markdown("---")
 with tab1:
 
     st.header("📊 Team Performance Analysis")
@@ -260,4 +244,5 @@ with tab4:
     ax2.set_title("Top 10 Wicket Takers")
 
     plt.xticks(rotation=50)
+
     st.pyplot(fig)
