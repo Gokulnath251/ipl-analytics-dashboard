@@ -245,4 +245,5 @@ with tab4:
 
     plt.xticks(rotation=50)
 
-    st.pyplot(fig)
+    st.pyplot(fig2)
+
