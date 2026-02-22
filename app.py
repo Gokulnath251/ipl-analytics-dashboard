@@ -193,7 +193,7 @@ with tab4:
         .groupby('Batter')['BatsmanRun']
         .sum()
         .sort_values(ascending=False)
-        .head(10)
+        .head(11)
         .reset_index()
     )
 
@@ -227,7 +227,7 @@ with tab4:
         .groupby('Bowler')['IsWicketDelivery']
         .sum()
         .sort_values(ascending=False)
-        .head(10)
+        .head(11)
         .reset_index()
     )
 
@@ -246,4 +246,5 @@ with tab4:
     plt.xticks(rotation=50)
 
     st.pyplot(fig2)
+
 
