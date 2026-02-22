@@ -198,7 +198,7 @@ with tab4:
     )
     
     top_batsmen['Rank'] = top_batsmen.index + 1
-    top_batsmen = top_batsmen[['Rank', 'Batsmen', 'BatsmanRun']]
+    top_batsmen = top_batsmen[['Rank', 'Batter', 'BatsmanRun']]
 
     st.dataframe(top_batsmen, use_container_width=True)
 
@@ -254,6 +254,7 @@ with tab4:
     plt.xticks(rotation=50)
 
     st.pyplot(fig2)
+
 
 
 
