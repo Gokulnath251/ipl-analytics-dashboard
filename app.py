@@ -190,7 +190,7 @@ with tab4:
 
     top_batsmen = (
         deliveries
-        .groupby('Batsman')['BatsmanRun']
+        .groupby('Batsmen')['BatsmanRun']
         .sum()
         .sort_values(ascending=False)
         .head(10)
@@ -254,6 +254,7 @@ with tab4:
     plt.xticks(rotation=50)
 
     st.pyplot(fig2)
+
 
 
 
