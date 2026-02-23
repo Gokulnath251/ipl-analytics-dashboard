@@ -15,11 +15,14 @@ def load_data():
 matches, deliveries = load_data()
 
 
-tab1, tab2, tab3, tab4 = st.tabs([
+
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📊 Team Analysis",
     "🏏 Batting Analysis",
     "🎯 Bowling Analysis",
-    "🏆 Leaderboards"
+    "🏆 Batters Leaderboards",
+    "🏆 Bowlers Leaderboards",
+    "🔥 Match-up Analysis"
 ])
 
 st.markdown("---")
@@ -29,7 +32,7 @@ with tab1:
     st.header("📊 Team Performance Analysis")
 
     # Select Team
-    teams = matches['team1'].unique()
+    teams = pd.concat([matches['team1'], matches['team2']]).unique()
     selected_team = st.selectbox("Select Team", sorted(teams))
 
     # Total matches played
@@ -126,6 +129,7 @@ with tab2:
     st.write(f"Dismissals: {dismissals}")
 
 
+
  
 
     # PHASE-WISE ANALYSIS
@@ -173,6 +177,64 @@ with tab2:
 
     st.pyplot(fig)
 
+
+
+        # -----------------------------
+    # CONSISTENCY INDEX
+    # -----------------------------
+    st.markdown("---")
+    st.subheader("📊 Consistency Analysis")
+
+    # Runs per match
+    runs_per_match = (
+        player_data
+        .groupby('ID')['BatsmanRun']
+        .sum()
+    )
+
+    if runs_per_match.shape[0] > 1:
+
+        mean_runs = runs_per_match.mean()
+        std_runs = runs_per_match.std()
+
+        # Coefficient of Variation (CV)
+        cv = (std_runs / mean_runs) if mean_runs > 0 else 0
+
+        # Convert to consistency score (higher = better)
+        consistency_index = (1 - cv) * 100 if cv < 1 else 0
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric("Average Runs per Match", f"{mean_runs:.2f}")
+        col2.metric("Std Deviation", f"{std_runs:.2f}")
+        col3.metric("Consistency Index (%)", f"{consistency_index:.2f}")
+
+    else:
+        st.info("Not enough matches to calculate consistency.")
+
+        # -----------------------------
+# BATTING IMPACT RATING
+# -----------------------------
+    st.markdown("---")
+    st.subheader("🔥 Batting Impact Rating")
+
+    if matches_played_player > 0:
+
+        avg_runs = total_runs / matches_played_player
+
+        boundary_runs = (fours * 4) + (sixes * 6)
+        boundary_percentage = (boundary_runs / total_runs) if total_runs > 0 else 0
+
+        impact_score = (
+            0.5 * avg_runs +
+            0.3 * (strike_rate / 100 * 50) +
+            0.2 * (boundary_percentage * 100)
+        )
+
+        st.metric("Batting Impact Score", f"{impact_score:.2f} / 100")
+
+    else:
+        st.info("Not enough data to calculate impact.")
 
 
 # -----------------------------
@@ -274,9 +336,6 @@ with tab3:
     col5.metric("Middle Wickets", int(mid_wickets))
     col6.metric("Death Wickets", int(death_wickets))
 
-    # -----------------------------
-# BOWLING PHASE CHART
-# -----------------------------
 # -----------------------------
 # BOWLING PHASE WICKETS CHART
 # -----------------------------
@@ -295,6 +354,66 @@ with tab3:
 
     st.pyplot(fig)
 
+
+        # -----------------------------
+    # BOWLER CONSISTENCY INDEX
+    # -----------------------------
+    st.markdown("---")
+    st.subheader("📊 Bowling Consistency Analysis")
+
+    wickets_per_match = (
+        bowler_data
+        .groupby('ID')['IsWicketDelivery']
+        .sum()
+    )
+
+    if wickets_per_match.shape[0] > 1:
+
+        mean_wkts = wickets_per_match.mean()
+        std_wkts = wickets_per_match.std()
+
+        cv_wkts = (std_wkts / mean_wkts) if mean_wkts > 0 else 0
+
+        consistency_index = (1 - cv_wkts) * 100 if cv_wkts < 1 else 0
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric("Avg Wickets per Match", f"{mean_wkts:.2f}")
+        col2.metric("Std Deviation", f"{std_wkts:.2f}")
+        col3.metric("Consistency Index (%)", f"{consistency_index:.2f}")
+
+    else:
+        st.info("Not enough matches to calculate consistency.")
+        
+
+
+            # -----------------------------
+    # BOWLING IMPACT RATING
+    # -----------------------------
+    st.markdown("---")
+    st.subheader("🔥 Bowling Impact Rating")
+
+    if matches_played_bowler > 0:
+
+        avg_wickets = total_wickets / matches_played_bowler
+
+        # Economy inverse (lower economy = better score)
+        economy_score = max(0, 10 - economy)  # scale around T20 avg economy
+
+        impact_score = (
+            0.5 * (avg_wickets * 20) +      # Wickets weight
+            0.3 * (economy_score * 10) +    # Economy weight
+            0.2 * dot_ball_percentage       # Dot ball weight
+        )
+
+        # Cap to 100
+        impact_score = min(100, impact_score)
+
+        st.metric("Bowling Impact Score", f"{impact_score:.2f} / 100")
+
+    else:
+        st.info("Not enough data to calculate impact.")
+
 # -----------------------------
 # TOP 10 RUN SCORERS
 # -----------------------------
@@ -310,7 +429,7 @@ with tab4:
         .groupby('Batter')['BatsmanRun']
         .sum()
         .sort_values(ascending=False)
-        .head(11)
+        .head(10)
         .reset_index()
     )
 
@@ -334,7 +453,9 @@ with tab4:
     # -----------------------------
     # TOP 10 WICKET TAKERS
     # -----------------------------
-    st.markdown("---")
+
+st.markdown("---")
+with tab5:
     st.header("🎯 Top 10 Wicket Takers")
 
     deliveries['IsWicketDelivery'] = pd.to_numeric(deliveries['IsWicketDelivery'], errors='coerce')
@@ -344,7 +465,7 @@ with tab4:
         .groupby('Bowler')['IsWicketDelivery']
         .sum()
         .sort_values(ascending=False)
-        .head(11)
+        .head(10)
         .reset_index()
     )
 
@@ -363,6 +484,73 @@ with tab4:
     plt.xticks(rotation=50)
     st.pyplot(fig2)
 
-  
+
+    # -----------------------------
+# MATCH-UP ANALYSIS TAB
+# -----------------------------
+st.markdown("---")
+with tab6:
+    st.header("🔥 Batter vs Bowler Match-up Analysis")
+
+    batters = deliveries['Batter'].dropna().unique()
+    selected_batter = st.selectbox(
+    "Select Batter",
+    sorted(batters),
+    key="matchup_batter"
+)
+
+    # Show only bowlers who bowled to this batter
+    bowlers_list = deliveries[
+        deliveries['Batter'] == selected_batter
+    ]['Bowler'].dropna().unique()
+
+    selected_bowler = st.selectbox(
+    "Select Bowler",
+    sorted(bowlers_list),
+    key="matchup_bowler"
+)
+    matchup_data = deliveries[
+        (deliveries['Batter'] == selected_batter) &
+        (deliveries['Bowler'] == selected_bowler)
+    ].copy()
+
+    if matchup_data.shape[0] > 0:
+
+        matchup_data['BatsmanRun'] = pd.to_numeric(matchup_data['BatsmanRun'], errors='coerce')
+        matchup_data['IsWicketDelivery'] = pd.to_numeric(matchup_data['IsWicketDelivery'], errors='coerce')
+
+        total_runs = matchup_data['BatsmanRun'].sum()
+        balls = matchup_data.shape[0]
+
+        strike_rate = (total_runs / balls) * 100 if balls > 0 else 0
+
+        dismissals = matchup_data[
+            (matchup_data['IsWicketDelivery'] == 1) &
+            (matchup_data['PlayerOut'] == selected_batter)
+        ].shape[0]
+
+        average = (total_runs / dismissals) if dismissals > 0 else total_runs
+
+        fours = matchup_data[matchup_data['BatsmanRun'] == 4].shape[0]
+        sixes = matchup_data[matchup_data['BatsmanRun'] == 6].shape[0]
+
+        dot_balls = matchup_data[matchup_data['BatsmanRun'] == 0].shape[0]
+        dot_percentage = (dot_balls / balls) * 100 if balls > 0 else 0
+
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Runs Scored", int(total_runs))
+        col2.metric("Balls Faced", balls)
+        col3.metric("Strike Rate", f"{strike_rate:.2f}")
+        col4.metric("Dismissals", dismissals)
+
+        col5, col6, col7 = st.columns(3)
+        col5.metric("Average", f"{average:.2f}")
+        col6.metric("Fours / Sixes", f"{fours} / {sixes}")
+        col7.metric("Dot Ball %", f"{dot_percentage:.2f}")
+
+    else:
+        st.info("No match-up data available.")
+
+
 
 
