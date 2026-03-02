@@ -1,29 +1,96 @@
+# ---------------------------------------------
+# IPL Advanced Analytics Dashboard
+# ---------------------------------------------
+
 import streamlit as st
 import pandas as pd
+import numpy as np
+import pickle
+import plotly.graph_objects as go
 
-st.set_page_config(page_title="IPL Analytics Dashboard", layout="wide")
+
+# Page configuration
+st.set_page_config(
+    page_title="IPL Advanced Analytics Dashboard",
+    page_icon="🏏",
+    layout="wide"
+)
+
+
+# ---------------------------------------------
+# Load Machine Learning Models
+# ---------------------------------------------
+
+model = pickle.load(open("win_predictor.pkl", "rb"))
+score_model = pickle.load(open("final_score_model.pkl", "rb"))
+
+
+# ---------------------------------------------
+# Dashboard Title
+# ---------------------------------------------
 
 st.title("🏏 IPL Advanced Analytics Dashboard")
 
-# Load datasets
+st.markdown("""
+Explore **IPL team performance, player analytics, venue insights,  
+and machine learning based match predictions**.
+
+This dashboard combines **historical IPL data** with **predictive models**
+to deliver advanced cricket analytics.
+""")
+
+
+# ---------------------------------------------
+# Load Dataset
+# ---------------------------------------------
+
 @st.cache_data
 def load_data():
     matches = pd.read_csv("Match_Info.csv")
     deliveries = pd.read_csv("Ball_By_Ball_Match_Data.csv")
     return matches, deliveries
 
+
 matches, deliveries = load_data()
 
 
+# ---------------------------------------------
+# Clean Venue Names
+# ---------------------------------------------
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "📊 Team Analysis",
-    "🏏 Batting Analysis",
-    "🎯 Bowling Analysis",
-    "🏆 Batters Leaderboards",
-    "🏆 Bowlers Leaderboards",
-    "🔥 Match-up Analysis"
+matches['venue'] = matches['venue'].str.lower()
+matches['venue'] = matches['venue'].str.replace(',.*', '', regex=True)
+matches['venue'] = matches['venue'].str.replace('.', ' ', regex=False)
+matches['venue'] = matches['venue'].str.replace('\s+', ' ', regex=True).str.strip()
+matches['venue'] = matches['venue'].str.title()
+
+
+# ---------------------------------------------
+# Main Dashboard Sections
+# ---------------------------------------------
+
+main_tab1, main_tab2 = st.tabs([
+    "📊 Historical Analytics",
+    "🔮 Predictive Analytics"
 ])
+
+
+# ---------------------------------------------
+# Historical Analytics
+# ---------------------------------------------
+
+with main_tab1:
+
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "📊 Team Analysis",
+        "🏏 Batting Analysis",
+        "🎯 Bowling Analysis",
+        "🏆 Batters Leaderboards",
+        "🏆 Bowlers Leaderboards",
+        "🏟️ Venue Analysis",
+        "🧤 Fielding Analysis"
+    ])
+
 
 st.markdown("---")
 with tab1:
@@ -485,33 +552,459 @@ with tab5:
     st.pyplot(fig2)
 
 
-    # -----------------------------
-# MATCH-UP ANALYSIS TAB
+# -----------------------------
+# VENUE ANALYSIS
 # -----------------------------
 st.markdown("---")
+
 with tab6:
-    st.header("🔥 Batter vs Bowler Match-up Analysis")
+
+    st.header("🏟️ Venue Analysis")
+
+    venues = matches['venue'].dropna().unique()
+
+    selected_venue = st.selectbox("Select Venue", sorted(venues))
+
+    venue_matches = matches[matches['venue'] == selected_venue]
+
+    total_matches = venue_matches.shape[0]
+
+    batting_first_wins = venue_matches[
+        venue_matches['toss_decision'] == 'bat'
+    ]['winner'].count()
+
+    chasing_wins = venue_matches[
+        venue_matches['toss_decision'] == 'field'
+    ]['winner'].count()
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("Matches Played", total_matches)
+    col2.metric("Batting First Wins", batting_first_wins)
+    col3.metric("Chasing Wins", chasing_wins)
+
+    # -----------------------------
+    # Average Score at Venue
+    # -----------------------------
+
+    venue_match_ids = venue_matches['match_number'].unique()
+
+    venue_deliveries = deliveries[
+        deliveries['ID'].isin(venue_match_ids)
+    ]
+
+    venue_deliveries['TotalRun'] = pd.to_numeric(
+        venue_deliveries['TotalRun'], errors='coerce'
+    )
+
+    match_scores = (
+        venue_deliveries
+        .groupby(['ID','Innings'])['TotalRun']
+        .sum()
+        .reset_index()
+    )
+
+    avg_score = match_scores['TotalRun'].mean()
+
+    st.metric("Average Innings Score", f"{avg_score:.2f}")
+# -----------------------------
+# FIELDING & WICKETKEEPING ANALYSIS
+# -----------------------------
+with tab7:
+
+    st.header("🧤 Fielding & Wicketkeeping Analysis")
+
+    
+
+    # Remove rows without fielders
+    fielding_data = deliveries.dropna(subset=['FieldersInvolved']).copy()
+
+    # Split multiple fielders
+    fielding_data['FieldersInvolved'] = fielding_data['FieldersInvolved'].str.split(',')
+    fielding_data = fielding_data.explode('FieldersInvolved')
+    fielding_data['FieldersInvolved'] = fielding_data['FieldersInvolved'].str.strip()
+
+    # -----------------------------
+    # Identify Wicketkeepers
+    # -----------------------------
+    stumpings = fielding_data[fielding_data['Kind'] == 'stumped']
+
+    wk_players = stumpings['FieldersInvolved'].unique()
+
+    # -----------------------------
+    # Separate WK vs Fielders
+    # -----------------------------
+    wk_events = fielding_data[fielding_data['FieldersInvolved'].isin(wk_players)]
+    fielder_events = fielding_data[~fielding_data['FieldersInvolved'].isin(wk_players)]
+
+    # =====================================================
+    # 🧤 WICKETKEEPING ANALYSIS
+    # =====================================================
+    st.subheader("🧤 Wicketkeeping Performance")
+
+    wk_catches = wk_events[wk_events['Kind'] == 'caught']
+
+    wk_catches_table = (
+        wk_catches
+        .groupby('FieldersInvolved')
+        .size()
+        .sort_values(ascending=False)
+        .head(10)
+        .reset_index(name='WK Catches')
+    )
+
+    wk_runouts = wk_events[wk_events['Kind'] == 'run out']
+
+    wk_runouts_table = (
+        wk_runouts
+        .groupby('FieldersInvolved')
+        .size()
+        .sort_values(ascending=False)
+        .head(10)
+        .reset_index(name='WK Run Outs')
+    )
+
+    wk_stumpings_table = (
+        stumpings
+        .groupby('FieldersInvolved')
+        .size()
+        .sort_values(ascending=False)
+        .head(10)
+        .reset_index(name='Stumpings')
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.write("Top WK Catches")
+        st.dataframe(wk_catches_table, use_container_width=True)
+
+    with col2:
+        st.write("WK Run Outs")
+        st.dataframe(wk_runouts_table, use_container_width=True)
+
+    with col3:
+        st.write("Stumpings")
+        st.dataframe(wk_stumpings_table, use_container_width=True)
+
+    # =====================================================
+    # 🏃 FIELDING ANALYSIS
+    # =====================================================
+    st.subheader("🏃 Fielding Performance")
+
+    fielder_catches = fielder_events[fielder_events['Kind'] == 'caught']
+
+    top_fielder_catches = (
+        fielder_catches
+        .groupby('FieldersInvolved')
+        .size()
+        .sort_values(ascending=False)
+        .head(10)
+        .reset_index(name='Catches')
+    )
+
+    fielder_runouts = fielder_events[fielder_events['Kind'] == 'run out']
+
+    top_fielder_runouts = (
+        fielder_runouts
+        .groupby('FieldersInvolved')
+        .size()
+        .sort_values(ascending=False)
+        .head(10)
+        .reset_index(name='Run Outs')
+    )
+
+    col4, col5 = st.columns(2)
+
+    with col4:
+        st.write("Top Fielding Catches")
+        st.dataframe(top_fielder_catches, use_container_width=True)
+
+    with col5:
+        st.write("Fielding Run Outs")
+        st.dataframe(top_fielder_runouts, use_container_width=True)
+
+
+with main_tab2:
+
+    st.header("🔮 Match Prediction Center")
+
+    predictor_tab1, predictor_tab2, predictor_tab3 = st.tabs([
+    "🏆 Win Probability Predictor",
+    "🎯 Final Score Predictor",
+    "📈 Future Models"
+])
+with predictor_tab1:
+
+    with st.container():
+
+        st.header("🏆 IPL Win Probability Predictor")
+
+        st.subheader("Match Setup")
+
+        col_team1, col_team2 = st.columns(2)
+
+        with col_team1:
+            batting_team = st.selectbox(
+                "Batting Team",
+                teams,
+                key="batting_team_predictor"
+            )
+
+        with col_team2:
+            bowling_team = st.selectbox(
+                "Bowling Team",
+                teams,
+                key="bowling_team_predictor"
+            )
+
+        # -----------------------------
+        # Head to Head Record
+        # -----------------------------
+        if batting_team != bowling_team:
+
+            head_to_head = matches[
+                ((matches['team1'] == batting_team) & (matches['team2'] == bowling_team)) |
+                ((matches['team1'] == bowling_team) & (matches['team2'] == batting_team))
+            ]
+
+            total_matches = head_to_head.shape[0]
+
+            batting_team_wins = head_to_head[
+                head_to_head['winner'] == batting_team
+            ].shape[0]
+
+            bowling_team_wins = head_to_head[
+                head_to_head['winner'] == bowling_team
+            ].shape[0]
+
+            st.subheader("Head-to-Head Record")
+
+            col_h1, col_h2, col_h3 = st.columns(3)
+
+            col_h1.metric("Matches Played", total_matches)
+            col_h2.metric(f"{batting_team} Wins", batting_team_wins)
+            col_h3.metric(f"{bowling_team} Wins", bowling_team_wins)
+
+        st.divider()
+
+        st.markdown("Enter the current match situation to estimate the chasing team's chances of winning.")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            target = st.number_input("Target Score", min_value=1, value=180)
+
+            overs = st.number_input(
+                "Overs Completed",
+                min_value=0.1,
+                max_value=19.5,
+                value=10.0,
+                step=0.1
+            )
+
+        with col2:
+            score = st.number_input("Current Score", min_value=0, value=90)
+
+            wickets = st.number_input(
+                "Wickets Fallen",
+                min_value=0,
+                max_value=10,
+                value=2
+            )
+
+        predict = st.button("Predict Win Probability", use_container_width=True)
+
+        if predict:
+
+            runs_left = target - score
+            balls_left = 120 - (overs * 6)
+            wickets_left = 10 - wickets
+
+            if balls_left <= 0:
+                st.error("Match already finished!")
+
+            else:
+
+                # Run rate calculations
+                crr = score / overs if overs > 0 else 0
+                rrr = runs_left / (balls_left / 6)
+
+                progress = (score / target) * 100
+
+                st.markdown(
+                    f"""
+                    ### 🏏 Match Scenario
+
+                    **{batting_team} vs {bowling_team}**
+
+                    Target: **{target}**
+
+                    Current Score: **{score}/{wickets}**
+
+                    Overs Completed: **{overs}**
+                    """
+                )
+
+                st.divider()
+
+                # Match Pressure
+                st.subheader("Match Pressure")
+
+                col_p1, col_p2 = st.columns(2)
+
+                with col_p1:
+                    st.metric("Runs Needed", runs_left)
+
+                with col_p2:
+                    st.metric("Balls Remaining", int(balls_left))
+
+                st.divider()
+
+                # Run Rate Analysis
+                st.subheader("Run Rate Analysis")
+
+                col_rr1, col_rr2 = st.columns(2)
+
+                with col_rr1:
+                    st.info(f"Current Run Rate (CRR)\n\n{crr:.2f}")
+
+                with col_rr2:
+                    st.warning(f"Required Run Rate (RRR)\n\n{rrr:.2f}")
+
+                st.divider()
+
+                # Chase Progress
+                st.subheader("Chase Progress")
+
+                st.progress(progress / 100)
+
+                st.caption(f"{score} runs scored out of {target} target ({progress:.1f}%)")
+
+                st.divider()
+
+                # -----------------------------
+                # Historical Strength
+                # -----------------------------
+                head_to_head = matches[
+                    ((matches['team1'] == batting_team) & (matches['team2'] == bowling_team)) |
+                    ((matches['team1'] == bowling_team) & (matches['team2'] == batting_team))
+                ]
+
+                total_matches = head_to_head.shape[0]
+
+                batting_team_wins = head_to_head[
+                    head_to_head['winner'] == batting_team
+                ].shape[0]
+
+                if total_matches > 0:
+                    historical_strength = batting_team_wins / total_matches
+                else:
+                    historical_strength = 0.5
+
+                # -----------------------------
+                # ML Prediction
+                # -----------------------------
+                input_data = np.array([[runs_left, balls_left, wickets_left, crr, rrr]])
+
+                prediction = model.predict_proba(input_data)
+
+                base_win_prob = prediction[0][1]
+
+                # Combine ML + historical strength
+                adjusted_win_prob = (base_win_prob * 0.8) + (historical_strength * 0.2)
+
+                win_prob = adjusted_win_prob * 100
+                lose_prob = 100 - win_prob
+
+                st.subheader("Prediction Result")
+
+                col3, col4 = st.columns(2)
+
+                with col3:
+                    st.success(f"{batting_team} Win Probability\n\n{win_prob:.2f}%")
+
+                with col4:
+                    st.error(f"{bowling_team} Win Probability\n\n{lose_prob:.2f}%")
+
+
+with predictor_tab2:
+
+    st.header("🎯 Final Score Predictor")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        current_score = st.number_input("Current Score", value=80)
+
+    with col2:
+        overs = st.number_input("Overs Completed", value=10.0)
+
+    with col3:
+        wickets = st.number_input("Wickets Fallen", value=2)
+
+    runs_last_5 = st.number_input("Runs in Last 5 Overs", value=40)
+    wkts_last_5 = st.number_input("Wickets in Last 5 Overs", value=1)
+
+    if st.button("Predict Final Score"):
+
+        input_data = np.array([[current_score, overs, wickets, runs_last_5, wkts_last_5]])
+
+        prediction = score_model.predict(input_data)
+
+        predicted_score = int(prediction[0])
+
+        st.divider()
+
+        st.markdown("### 🧠 Predicted Final Score")
+
+        col_a, col_b, col_c = st.columns(3)
+
+        with col_a:
+            st.metric("Predicted Score", predicted_score)
+
+        with col_b:
+            st.metric("Minimum Expected", predicted_score - 15)
+
+        with col_c:
+            st.metric("Maximum Expected", predicted_score + 15)
+
+        st.divider()
+
+        st.subheader("Projected Score Range")
+
+        score_progress = predicted_score / 250
+
+        st.progress(score_progress)
+
+        st.caption(f"Projected IPL Score: {predicted_score} runs")
+    
+with predictor_tab3:
+
+    st.subheader("⚔️ Batter vs Bowler Predictor")
 
     batters = deliveries['Batter'].dropna().unique()
-    selected_batter = st.selectbox(
-    "Select Batter",
-    sorted(batters),
-    key="matchup_batter"
-)
+    bowlers = deliveries['Bowler'].dropna().unique()
 
-    # Show only bowlers who bowled to this batter
-    bowlers_list = deliveries[
-        deliveries['Batter'] == selected_batter
-    ]['Bowler'].dropna().unique()
+    colA, colB = st.columns(2)
 
-    selected_bowler = st.selectbox(
-    "Select Bowler",
-    sorted(bowlers_list),
-    key="matchup_bowler"
-)
+    with colA:
+        batter = st.selectbox(
+            "Select Batter",
+            sorted(batters),
+            key="predictor_batter"
+        )
+
+    with colB:
+        bowler = st.selectbox(
+            "Select Bowler",
+            sorted(bowlers),
+            key="predictor_bowler"
+        )
+
     matchup_data = deliveries[
-        (deliveries['Batter'] == selected_batter) &
-        (deliveries['Bowler'] == selected_bowler)
+        (deliveries['Batter'] == batter) &
+        (deliveries['Bowler'] == bowler)
     ].copy()
 
     if matchup_data.shape[0] > 0:
@@ -519,38 +1012,84 @@ with tab6:
         matchup_data['BatsmanRun'] = pd.to_numeric(matchup_data['BatsmanRun'], errors='coerce')
         matchup_data['IsWicketDelivery'] = pd.to_numeric(matchup_data['IsWicketDelivery'], errors='coerce')
 
-        total_runs = matchup_data['BatsmanRun'].sum()
-        balls = matchup_data.shape[0]
+        # remove wides
+        legal_balls = matchup_data[matchup_data['ExtraType'] != 'wides']
 
-        strike_rate = (total_runs / balls) * 100 if balls > 0 else 0
+        runs = legal_balls['BatsmanRun'].sum()
+        balls = legal_balls.shape[0]
 
-        dismissals = matchup_data[
-            (matchup_data['IsWicketDelivery'] == 1) &
-            (matchup_data['PlayerOut'] == selected_batter)
+        
+                # Outcome counts
+        dot = legal_balls[legal_balls['BatsmanRun'] == 0].shape[0]
+        ones = legal_balls[legal_balls['BatsmanRun'] == 1].shape[0]
+        twos = legal_balls[legal_balls['BatsmanRun'] == 2].shape[0]
+        fours = legal_balls[legal_balls['BatsmanRun'] == 4].shape[0]
+        sixes = legal_balls[legal_balls['BatsmanRun'] == 6].shape[0]
+
+        wickets = legal_balls[
+            (legal_balls['IsWicketDelivery'] == 1) &
+            (legal_balls['PlayerOut'] == batter)
         ].shape[0]
 
-        average = (total_runs / dismissals) if dismissals > 0 else total_runs
 
-        fours = matchup_data[matchup_data['BatsmanRun'] == 4].shape[0]
-        sixes = matchup_data[matchup_data['BatsmanRun'] == 6].shape[0]
+            # Convert to probabilities
+        dot_p = (dot / balls) * 100 if balls > 0 else 0
+        one_p = (ones / balls) * 100 if balls > 0 else 0
+        two_p = (twos / balls) * 100 if balls > 0 else 0
+        four_p = (fours / balls) * 100 if balls > 0 else 0
+        six_p = (sixes / balls) * 100 if balls > 0 else 0
+        wicket_p = (wickets / balls) * 100 if balls > 0 else 0
+            
+        runs = legal_balls['BatsmanRun'].sum()
+        balls = legal_balls.shape[0]
+       
 
-        dot_balls = matchup_data[matchup_data['BatsmanRun'] == 0].shape[0]
+        strike_rate = (runs / balls) * 100 if balls > 0 else 0
+
+        dismissals = legal_balls[
+            (legal_balls['IsWicketDelivery'] == 1) &
+            (legal_balls['PlayerOut'] == batter)
+        ].shape[0]
+
+        average = runs / dismissals if dismissals > 0 else runs
+
+        fours = legal_balls[legal_balls['BatsmanRun'] == 4].shape[0]
+        sixes = legal_balls[legal_balls['BatsmanRun'] == 6].shape[0]
+
+        dot_balls = legal_balls[legal_balls['BatsmanRun'] == 0].shape[0]
         dot_percentage = (dot_balls / balls) * 100 if balls > 0 else 0
 
+        expected_runs = runs / balls if balls > 0 else 0
+        dismissal_prob = (dismissals / balls) * 100 if balls > 0 else 0
+
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Runs Scored", int(total_runs))
+
+        col1.metric("Runs Scored", int(runs))
         col2.metric("Balls Faced", balls)
         col3.metric("Strike Rate", f"{strike_rate:.2f}")
         col4.metric("Dismissals", dismissals)
 
         col5, col6, col7 = st.columns(3)
+
         col5.metric("Average", f"{average:.2f}")
         col6.metric("Fours / Sixes", f"{fours} / {sixes}")
         col7.metric("Dot Ball %", f"{dot_percentage:.2f}")
 
+        st.divider()
+
+        st.subheader("Prediction Indicators")
+
+        col8, col9 = st.columns(2)
+
+        col8.metric("Expected Runs / Ball", f"{expected_runs:.2f}")
+        col9.metric("Dismissal Probability", f"{dismissal_prob:.2f}%")
+
     else:
-        st.info("No match-up data available.")
+        st.warning("No historical matchup data available.")
 
 
+st.markdown("---")
+st.caption("Built using Streamlit • IPL Data Analytics Project")
 
 
+    
