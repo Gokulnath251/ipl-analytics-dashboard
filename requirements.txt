@@ -1,13 +1,6 @@
-<<<<<<< HEAD
 streamlit
 pandas
 numpy
 scikit-learn
+plotly
 matplotlib
-=======
-streamlit
-pandas
-numpy
-scikit-learn
-matplotlib
->>>>>>> master
