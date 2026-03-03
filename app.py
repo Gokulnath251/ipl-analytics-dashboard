@@ -21,8 +21,8 @@ st.set_page_config(
 # Load Machine Learning Models
 # ---------------------------------------------
 
-model = pickle.load(open("win_predictor.pkl", "rb"))
-score_model = pickle.load(open("final_score_model.pkl", "rb"))
+model = pickle.load(open("models/win_predictor.pkl", "rb"))
+score_model = pickle.load(open("models/final_score_model.pkl", "rb"))
 
 
 # ---------------------------------------------
@@ -46,8 +46,8 @@ to deliver advanced cricket analytics.
 
 @st.cache_data
 def load_data():
-    matches = pd.read_csv("Match_Info.csv")
-    deliveries = pd.read_csv("Ball_By_Ball_Match_Data.csv")
+    matches = pd.read_csv("data/Match_Info.csv")
+    deliveries = pd.read_csv("data/Ball_By_Ball_Match_Data.csv")
     return matches, deliveries
 
 
