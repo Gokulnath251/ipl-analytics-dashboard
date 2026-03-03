@@ -8,7 +8,12 @@ from sklearn.metrics import mean_absolute_error
 data = pd.read_csv("final_score_training_data.csv")
 
 # Features
-X = data[['current_score','overs','wickets','runs_last_30','wkts_last_30']]
+X = data[['current_score',
+          'overs',
+          'wickets',
+          'runs_last_30',
+          'wkts_last_30',
+          'current_run_rate']]
 
 # Target
 y = data['final_score']
