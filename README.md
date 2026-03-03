@@ -1,8 +1,7 @@
-<<<<<<< HEAD
+
 # 🏏 IPL Advanced Analytics Dashboard
 
-🔗 Live App: https://ipl-analytics-dashboard-mwzrumwthenkfiqsy4jmcf.streamlit.app
-
+🔗 https://gokul-ipl-analytics.streamlit.app/
 
 # 🏏 IPL Advanced Analytics Dashboard
 
@@ -38,7 +37,8 @@ pip install -r requirements.txt
 streamlit run app.py
 
 
-=======
+
+
 # 🏏 IPL Advanced Analytics Dashboard
 
 This project is a **Data Science powered IPL Analytics Dashboard** built using **Streamlit**.
@@ -97,4 +97,4 @@ Files used:
 
 Install dependencies:
 
->>>>>>> master
+
