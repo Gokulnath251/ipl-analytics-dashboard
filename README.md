@@ -1,100 +1,72 @@
-<<<<<<< HEAD
-# 🏏 IPL Advanced Analytics Dashboard
+# IPL Predictive Analytics Dashboard
 
-🔗 Live App: https://ipl-analytics-dashboard-mwzrumwthenkfiqsy4jmcf.streamlit.app
+This project analyzes Indian Premier League (IPL) match data and provides
+advanced analytics and match prediction insights.
 
+## Features
 
-# 🏏 IPL Advanced Analytics Dashboard
+- Team performance analysis
+- Player batting and bowling analytics
+- Venue based match trends
+- Win probability prediction
+- Final score prediction
+- Batter vs Bowler matchup analytics
 
-An interactive IPL analytics dashboard built using Streamlit and Python.
-
-## 🚀 Features
-
-- 📊 Team performance analysis
-- 🏏 Player batting analytics
-- 🎯 Bowler performance metrics
-- 🏆 Top 10 run scorers & wicket takers
-- 📈 Data visualizations
-
-## 🧠 Analytics Implemented
-
-- Win percentage calculation
-- Toss impact analysis
-- Strike rate & batting average computation
-- Economy rate & dot ball percentage
-- Match-level aggregation using unique match IDs
-
-## 🛠 Tech Stack
+## Technologies Used
 
 - Python
 - Pandas
-- Matplotlib
 - Streamlit
+- Plotly
+- Scikit-learn
 
-## ▶️ How to Run
+## Screenshots
+
+### Team Analysis
+![Team Analysis](screenshots/team_analysis.png)
+
+### Win Probability Predictor
+![Win Predictor](screenshots/win_predictor.png)
+
+### Final Score Predictor
+![Score Predictor](screenshots/final_score.png)
+
+### Batter vs Bowler Predictor
+![Player Matchup](screenshots/player_matchup.png)
+
+## How to Run
 
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
 
 
-=======
-# 🏏 IPL Advanced Analytics Dashboard
 
-This project is a **Data Science powered IPL Analytics Dashboard** built using **Streamlit**.
 
-The dashboard provides insights into IPL matches using historical ball-by-ball data and machine learning predictions.
 
 ---
 
-## 📊 Features
+# 5️⃣ Final Result
+
+Your project now shows:
 
 ### Historical Analytics
+- Team analysis  
+- Batting analysis  
+- Bowling analysis  
+- Venue analysis  
+- Fielding analytics  
 
-- Team Performance Analysis
-- Batting Performance Analysis
-- Bowling Performance Analysis
-- Batters Leaderboard
-- Bowlers Leaderboard
-- Venue Analysis
-- Fielding & Wicketkeeping Analysis
+### Predictive Analytics
+- Win probability predictor  
+- Final score predictor  
 
----
-
-### 🔮 Predictive Analytics
-
-- **Win Probability Predictor**
-  - Predicts the probability of a team winning during a chase.
-
-- **Final Score Predictor**
-  - Predicts the final innings score based on the current match situation.
+### Player Matchup Analytics
+- Batter vs Bowler analysis  
+- Outcome probability visualization  
 
 ---
 
-## ⚙️ Technologies Used
+# ⭐ Honest feedback nanba
 
-- Python
-- Pandas
-- NumPy
-- Scikit-learn
-- Streamlit
-- Plotly
-
----
-
-## 📂 Dataset
-
-IPL Ball-by-Ball Dataset containing match and delivery level data.
-
-Files used:
-
-- `Match_Info.csv`
-- `Ball_By_Ball_Match_Data.csv`
-
----
-
-## 🚀 How to Run
-
-Install dependencies:
-
->>>>>>> master
+This is **actually a strong analytics portfolio project** because it includes:

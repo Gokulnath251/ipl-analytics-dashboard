@@ -7,12 +7,15 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import pickle
+import plotly.express as px
+import plotly.graph_objects as go
+
 
 
 
 # Page configuration
 st.set_page_config(
-    page_title="IPL Advanced Analytics Dashboard",
+    page_title="IPL Predictive Analytics & Match Intelligence Dashboard",
     page_icon="🏏",
     layout="wide"
 )
@@ -30,14 +33,20 @@ score_model = pickle.load(open("models/final_score_model.pkl", "rb"))
 # Dashboard Title
 # ---------------------------------------------
 
-st.title("🏏 IPL Advanced Analytics Dashboard")
+st.title("🏏 IPL Predictive Analytics & Match Intelligence Dashboard")
 
 st.markdown("""
-Explore **IPL team performance, player analytics, venue insights,  
-and machine learning based match predictions**.
+This dashboard explores **Indian Premier League match data** using  
+**advanced analytics and predictive modeling**.
 
-This dashboard combines **historical IPL data** with **predictive models**
-to deliver advanced cricket analytics.
+Features included:
+
+• Team performance analysis  
+• Player batting and bowling analytics  
+• Venue based match insights  
+• Match win probability prediction  
+• Final score prediction  
+• Batter vs Bowler matchup analysis
 """)
 
 
@@ -918,15 +927,95 @@ with predictor_tab1:
                 win_prob = adjusted_win_prob * 100
                 lose_prob = 100 - win_prob
 
+# -----------------------------
+                # Prediction Visualization
+                # -----------------------------
+                st.subheader("🏆 Match Winning Probability")
+
+                import plotly.graph_objects as go
+
+                # Decide colors based on probability
+                if win_prob > lose_prob:
+                    colors = ["green", "red"]
+                else:
+                    colors = ["red", "green"]
+
+                # Create bar chart
+                fig = go.Figure(data=[
+                    go.Bar(
+                        x=[batting_team, bowling_team],
+                        y=[win_prob, lose_prob],
+                        text=[f"{win_prob:.2f}%", f"{lose_prob:.2f}%"],
+                        textposition="auto",
+                        marker_color=colors
+                    )
+                ])
+
+                fig.update_layout(
+                    title="Predicted Match Winning Probability",
+                    yaxis_title="Probability (%)",
+                    xaxis_title="Teams"
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
+
+                # Decide gauge color based on probability
+                if win_prob < 40:
+                    gauge_color = "red"
+                elif win_prob < 60:
+                    gauge_color = "yellow"
+                else:
+                    gauge_color = "green"
+
+                gauge_fig = go.Figure(go.Indicator(
+                    mode="gauge+number",
+                    value=win_prob,
+                    title={'text': f"{batting_team} Win Probability"},
+                    gauge={
+                        'axis': {'range': [0, 100]},
+                        'bar': {'color': gauge_color},
+                        'steps': [
+                            {'range': [0, 40], 'color': "#ffcccc"},
+                            {'range': [40, 60], 'color': "#fff2cc"},
+                            {'range': [60, 100], 'color': "#ccffcc"}
+                        ]
+                    }
+                ))
+
+
+                
+
+                                # -----------------------------
+                # Match Pressure Indicator
+                # -----------------------------
+                st.subheader("Match Pressure Indicator")
+
+                pressure = rrr - crr
+
+                if pressure <= 0:
+                    st.success("🟢 LOW PRESSURE – Batting team is comfortable")
+                elif pressure <= 2:
+                    st.warning("🟡 MEDIUM PRESSURE – Match is balanced")
+                else:
+                    st.error("🔴 HIGH PRESSURE – Bowling team has advantage")
+
+                st.plotly_chart(gauge_fig, use_container_width=True)
+
                 st.subheader("Prediction Result")
 
                 col3, col4 = st.columns(2)
 
-                with col3:
-                    st.success(f"{batting_team} Win Probability\n\n{win_prob:.2f}%")
+                st.subheader("🏆 Match Winning Probability")
 
-                with col4:
-                    st.error(f"{bowling_team} Win Probability\n\n{lose_prob:.2f}%")
+                st.write(batting_team)
+                st.progress(win_prob/100)
+
+                st.write(bowling_team)
+                st.progress(lose_prob/100)
+
+                st.write(f"{batting_team}: {win_prob:.2f}%")
+                st.write(f"{bowling_team}: {lose_prob:.2f}%")
+
 
 
 with predictor_tab2:
@@ -979,7 +1068,8 @@ with predictor_tab2:
         st.progress(score_progress)
 
         st.caption(f"Projected IPL Score: {predicted_score} runs")
-    
+
+
 with predictor_tab3:
 
     st.subheader("⚔️ Batter vs Bowler Predictor")
@@ -1003,6 +1093,10 @@ with predictor_tab3:
             key="predictor_bowler"
         )
 
+    # Matchup Header (NEW UI IMPROVEMENT)
+    st.markdown(f"## 🏏 {batter} vs {bowler}")
+    st.divider()
+
     matchup_data = deliveries[
         (deliveries['Batter'] == batter) &
         (deliveries['Bowler'] == bowler)
@@ -1013,14 +1107,12 @@ with predictor_tab3:
         matchup_data['BatsmanRun'] = pd.to_numeric(matchup_data['BatsmanRun'], errors='coerce')
         matchup_data['IsWicketDelivery'] = pd.to_numeric(matchup_data['IsWicketDelivery'], errors='coerce')
 
-        # remove wides
+        # Remove wides
         legal_balls = matchup_data[matchup_data['ExtraType'] != 'wides']
 
         runs = legal_balls['BatsmanRun'].sum()
         balls = legal_balls.shape[0]
 
-        
-                # Outcome counts
         dot = legal_balls[legal_balls['BatsmanRun'] == 0].shape[0]
         ones = legal_balls[legal_balls['BatsmanRun'] == 1].shape[0]
         twos = legal_balls[legal_balls['BatsmanRun'] == 2].shape[0]
@@ -1032,34 +1124,18 @@ with predictor_tab3:
             (legal_balls['PlayerOut'] == batter)
         ].shape[0]
 
-
-            # Convert to probabilities
         dot_p = (dot / balls) * 100 if balls > 0 else 0
         one_p = (ones / balls) * 100 if balls > 0 else 0
         two_p = (twos / balls) * 100 if balls > 0 else 0
         four_p = (fours / balls) * 100 if balls > 0 else 0
         six_p = (sixes / balls) * 100 if balls > 0 else 0
         wicket_p = (wickets / balls) * 100 if balls > 0 else 0
-            
-        runs = legal_balls['BatsmanRun'].sum()
-        balls = legal_balls.shape[0]
-       
 
         strike_rate = (runs / balls) * 100 if balls > 0 else 0
-
-        dismissals = legal_balls[
-            (legal_balls['IsWicketDelivery'] == 1) &
-            (legal_balls['PlayerOut'] == batter)
-        ].shape[0]
-
+        dismissals = wickets
         average = runs / dismissals if dismissals > 0 else runs
 
-        fours = legal_balls[legal_balls['BatsmanRun'] == 4].shape[0]
-        sixes = legal_balls[legal_balls['BatsmanRun'] == 6].shape[0]
-
-        dot_balls = legal_balls[legal_balls['BatsmanRun'] == 0].shape[0]
-        dot_percentage = (dot_balls / balls) * 100 if balls > 0 else 0
-
+        dot_percentage = (dot / balls) * 100 if balls > 0 else 0
         expected_runs = runs / balls if balls > 0 else 0
         dismissal_prob = (dismissals / balls) * 100 if balls > 0 else 0
 
@@ -1085,10 +1161,27 @@ with predictor_tab3:
         col8.metric("Expected Runs / Ball", f"{expected_runs:.2f}")
         col9.metric("Dismissal Probability", f"{dismissal_prob:.2f}%")
 
+        st.divider()
+
+        st.subheader("Ball Outcome Probability")
+
+        outcome_df = pd.DataFrame({
+            "Outcome": ["Dot Ball", "1 Run", "2 Runs", "Four", "Six", "Wicket"],
+            "Probability": [dot_p, one_p, two_p, four_p, six_p, wicket_p]
+        })
+
+        fig = px.bar(
+            outcome_df,
+            x="Outcome",
+            y="Probability",
+            text="Probability",
+            color="Outcome",
+            title=f"{batter} vs {bowler} Ball Outcome Prediction"
+        )
+
+        fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
+
+        st.plotly_chart(fig, use_container_width=True)
+
     else:
         st.warning("No historical matchup data available.")
-
-
-st.markdown("---")
-st.caption("Built using Streamlit • IPL Data Analytics Project")
-
