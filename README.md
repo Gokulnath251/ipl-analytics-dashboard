@@ -1,13 +1,8 @@
-
 # 🏏 IPL Advanced Analytics Dashboard
 
 
+# Final Result
 
----
-
-# 5️⃣ Final Result
-
-Your project now shows:
 
 ### Historical Analytics
 
@@ -19,7 +14,6 @@ Your project now shows:
 - Venue Analysis
 - Fielding & Wicketkeeping Analysis
 
----
 
 ### 🔮 Predictive Analytics
 
@@ -29,7 +23,6 @@ Your project now shows:
 - **Final Score Predictor**
   - Predicts the final innings score based on the current match situation.
 
----
 
 ## ⚙️ Technologies Used
 
@@ -40,8 +33,6 @@ Your project now shows:
 - Streamlit
 - Plotly
 
----
-
 ## 📂 Dataset
 
 IPL Ball-by-Ball Dataset containing match and delivery level data.
@@ -51,7 +42,6 @@ Files used:
 - `Match_Info.csv`
 - `Ball_By_Ball_Match_Data.csv`
 
----
 
 ## 🚀 How to Run
 
