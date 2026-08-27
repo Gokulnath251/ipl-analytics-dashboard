@@ -1190,7 +1190,7 @@ with predictor_tab3:
 
 
 # ================================
-# LIVE CRICKET TEST
+# LIVE CRICKET
 # ================================
 
 st.divider()
@@ -1208,11 +1208,63 @@ try:
     )
 
     if response.status_code == 200:
+
         live_data = response.json()
 
-        st.success("✅ CricLive API connected successfully!")
+        if live_data.get("success"):
 
-        st.json(live_data)
+            matches = live_data.get("data", [])
+
+            st.success(f"🟢 Live data updated — {len(matches)} matches found")
+
+            for match in matches:
+
+                first_team = match.get("first_team", {})
+                second_team = match.get("second_team", {})
+
+                first_name = first_team.get(
+                    "full_name",
+                    first_team.get("name", "Team 1")
+                )
+
+                second_name = second_team.get(
+                    "full_name",
+                    second_team.get("name", "Team 2")
+                )
+
+                first_score = first_team.get("score", "Score unavailable")
+                second_score = second_team.get("score", "Score unavailable")
+
+                venue = match.get("venue", "Venue unavailable")
+                status = match.get(
+                    "status_detail",
+                    match.get("short_status", "Status unavailable")
+                )
+
+                match_title = match.get(
+                    "title",
+                    f"{first_name} vs {second_name}"
+                )
+
+                with st.container(border=True):
+
+                    st.subheader(f"🏏 {match_title}")
+
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        st.markdown(f"### {first_name}")
+                        st.markdown(f"## {first_score}")
+
+                    with col2:
+                        st.markdown(f"### {second_name}")
+                        st.markdown(f"## {second_score}")
+
+                    st.markdown(f"📍 **Venue:** {venue}")
+                    st.markdown(f"🟢 **Status:** {status}")
+
+        else:
+            st.warning("No live match data available.")
 
     else:
         st.error(f"❌ API Error: {response.status_code}")
