@@ -9,7 +9,7 @@ import numpy as np
 import pickle
 import plotly.express as px
 import plotly.graph_objects as go
-
+import requests
 
 
 
@@ -1186,3 +1186,37 @@ with predictor_tab3:
     else:
 
         st.warning("No historical matchup data available.")
+
+
+
+# ================================
+# LIVE CRICKET TEST
+# ================================
+
+st.divider()
+st.header("🔴 Live Cricket")
+
+try:
+    api_key = st.secrets["CRICLIVE_API_KEY"]
+
+    response = requests.get(
+        "https://cricketliveapi.com/api/v1/cricket/live",
+        headers={
+            "Authorization": f"Bearer {api_key}"
+        },
+        timeout=10
+    )
+
+    if response.status_code == 200:
+        live_data = response.json()
+
+        st.success("✅ CricLive API connected successfully!")
+
+        st.json(live_data)
+
+    else:
+        st.error(f"❌ API Error: {response.status_code}")
+        st.write(response.text)
+
+except Exception as e:
+    st.error(f"❌ Connection failed: {e}")
