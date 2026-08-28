@@ -9,6 +9,10 @@ import numpy as np
 import pickle
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.io as pio
+
+# Consistent dark chart theme
+pio.templates.default = "plotly_dark"
 
 
 
@@ -19,6 +23,149 @@ st.set_page_config(
     page_icon="🏏",
     layout="wide"
 )
+
+# =============================
+# PREMIUM IPL UI
+# =============================
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+
+.stApp {
+    background: radial-gradient(circle at 20% 0%, #172554 0%, #0b1120 32%, #070b14 75%);
+    color: #f8fafc;
+}
+
+.block-container {
+    max-width: 1420px;
+    padding-top: 1.2rem;
+    padding-bottom: 2rem;
+}
+
+/* Hide Streamlit chrome */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {background: transparent !important;}
+
+/* Hero */
+.ipl-hero {
+    padding: 24px 28px 22px 28px;
+    border: 1px solid rgba(148,163,184,.18);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(15,23,42,.94), rgba(30,41,59,.72));
+    box-shadow: 0 18px 45px rgba(0,0,0,.22);
+    margin-bottom: 18px;
+}
+.ipl-kicker {
+    color: #93c5fd;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+}
+.ipl-title {
+    font-size: clamp(28px, 4vw, 46px);
+    font-weight: 800;
+    line-height: 1.05;
+    margin: 0;
+}
+.ipl-subtitle {
+    margin-top: 10px;
+    color: #cbd5e1;
+    font-size: 14px;
+    max-width: 820px;
+}
+.ipl-pills { margin-top: 14px; }
+.ipl-pill {
+    display:inline-block;
+    padding: 6px 10px;
+    margin: 3px 5px 0 0;
+    border-radius: 999px;
+    background: rgba(59,130,246,.12);
+    border: 1px solid rgba(96,165,250,.22);
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Main tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 5px;
+    background: rgba(15,23,42,.68);
+    padding: 6px;
+    border-radius: 13px;
+    border: 1px solid rgba(148,163,184,.14);
+}
+.stTabs [data-baseweb="tab"] {
+    height: 40px;
+    padding: 0 15px;
+    border-radius: 9px;
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 13px;
+}
+.stTabs [aria-selected="true"] {
+    background: rgba(59,130,246,.18);
+    color: #dbeafe;
+}
+
+/* Section headings */
+h1, h2, h3 { letter-spacing: -.02em; }
+.stMarkdown h3 { margin-top: 12px; }
+
+/* Metrics */
+[data-testid="stMetric"] {
+    background: rgba(15,23,42,.72);
+    border: 1px solid rgba(148,163,184,.14);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,.13);
+}
+[data-testid="stMetricLabel"] { color: #94a3b8 !important; font-size: 11px !important; }
+[data-testid="stMetricValue"] { color: #f8fafc !important; font-size: 25px !important; }
+
+/* Inputs */
+[data-baseweb="select"] > div,
+[data-testid="stNumberInput"] input {
+    background: rgba(15,23,42,.72) !important;
+    border-color: rgba(148,163,184,.2) !important;
+    color: #f8fafc !important;
+    border-radius: 10px !important;
+}
+label { color: #cbd5e1 !important; font-size: 12px !important; font-weight: 600 !important; }
+
+/* Buttons */
+.stButton > button {
+    border: 0;
+    border-radius: 10px;
+    padding: 9px 18px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: white;
+    box-shadow: 0 8px 20px rgba(37,99,235,.22);
+}
+.stButton > button:hover { transform: translateY(-1px); }
+
+/* Dataframes */
+[data-testid="stDataFrame"] {
+    border: 1px solid rgba(148,163,184,.14);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Alerts */
+[data-testid="stAlert"] { border-radius: 12px; }
+
+/* Dividers */
+hr { border-color: rgba(148,163,184,.12) !important; }
+
+/* Compact vertical rhythm */
+[data-testid="stVerticalBlock"] > div:has(> [data-testid="stHorizontalBlock"]) { gap: .55rem; }
+</style>
+""", unsafe_allow_html=True)
 
 
 # ---------------------------------------------
@@ -33,21 +180,21 @@ score_model = pickle.load(open("models/final_score_model.pkl", "rb"))
 # Dashboard Title
 # ---------------------------------------------
 
-st.title("🏏 IPL Predictive Analytics & Match Intelligence Dashboard")
-
 st.markdown("""
-This dashboard explores **Indian Premier League match data** using  
-**advanced analytics and predictive modeling**.
-
-Features included:
-
-• Team performance analysis  
-• Player batting and bowling analytics  
-• Venue based match insights  
-• Match win probability prediction  
-• Final score prediction  
-• Batter vs Bowler matchup analysis
-""")
+<div class="ipl-hero">
+    <div class="ipl-kicker">IPL • MATCH INTELLIGENCE</div>
+    <div class="ipl-title">🏏 IPL Analytics</div>
+    <div class="ipl-subtitle">Explore team performance, player intelligence, venue trends and machine-learning powered match predictions — all in one compact dashboard.</div>
+    <div class="ipl-pills">
+        <span class="ipl-pill">Team Analytics</span>
+        <span class="ipl-pill">Batting</span>
+        <span class="ipl-pill">Bowling</span>
+        <span class="ipl-pill">Venue Insights</span>
+        <span class="ipl-pill">Win Prediction</span>
+        <span class="ipl-pill">Score Prediction</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 
 # ---------------------------------------------
