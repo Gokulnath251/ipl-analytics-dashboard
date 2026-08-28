@@ -31,11 +31,18 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+/* =========================================================
+   READABILITY-FIRST THEME
+   ========================================================= */
+html, body, [class*="css"], .stApp {
+    font-family: 'Inter', sans-serif !important;
+}
 
-.stApp {
-    background: radial-gradient(circle at 20% 0%, #172554 0%, #0b1120 32%, #070b14 75%);
-    color: #f8fafc;
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stHeader"] {
+    background: #0b1220 !important;
+    color: #f8fafc !important;
 }
 
 .block-container {
@@ -44,126 +51,244 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     padding-bottom: 2rem;
 }
 
-/* Hide Streamlit chrome */
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-header {background: transparent !important;}
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+header { background: transparent !important; }
 
-/* Hero */
+/* ---- GLOBAL TEXT: force bright readable text ---- */
+[data-testid="stAppViewContainer"] p,
+[data-testid="stAppViewContainer"] span,
+[data-testid="stAppViewContainer"] label,
+[data-testid="stAppViewContainer"] li,
+[data-testid="stAppViewContainer"] td,
+[data-testid="stAppViewContainer"] th,
+[data-testid="stAppViewContainer"] div {
+    color: #f1f5f9;
+}
+
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li,
+[data-testid="stMarkdownContainer"] strong,
+[data-testid="stText"] {
+    color: #f1f5f9 !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+small, .stCaption, [data-testid="stCaptionContainer"] {
+    color: #cbd5e1 !important;
+}
+
+/* ---- HERO ---- */
 .ipl-hero {
-    padding: 24px 28px 22px 28px;
-    border: 1px solid rgba(148,163,184,.18);
+    padding: 24px 28px 22px;
+    border: 1px solid #263756;
     border-radius: 18px;
-    background: linear-gradient(135deg, rgba(15,23,42,.94), rgba(30,41,59,.72));
-    box-shadow: 0 18px 45px rgba(0,0,0,.22);
+    background: #111c30;
+    box-shadow: 0 14px 35px rgba(0,0,0,.28);
     margin-bottom: 18px;
 }
 .ipl-kicker {
-    color: #93c5fd;
+    color: #60a5fa !important;
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 2px;
     text-transform: uppercase;
-    margin-bottom: 7px;
 }
 .ipl-title {
+    color: #ffffff !important;
     font-size: clamp(28px, 4vw, 46px);
     font-weight: 800;
     line-height: 1.05;
     margin: 0;
 }
 .ipl-subtitle {
+    color: #dbeafe !important;
     margin-top: 10px;
-    color: #cbd5e1;
     font-size: 14px;
     max-width: 820px;
 }
 .ipl-pills { margin-top: 14px; }
 .ipl-pill {
-    display:inline-block;
+    display: inline-block;
     padding: 6px 10px;
     margin: 3px 5px 0 0;
     border-radius: 999px;
-    background: rgba(59,130,246,.12);
-    border: 1px solid rgba(96,165,250,.22);
-    color: #bfdbfe;
+    background: #172b4d;
+    border: 1px solid #31558a;
+    color: #e0efff !important;
     font-size: 11px;
     font-weight: 600;
 }
 
-/* Main tabs */
+/* ---- TABS: high contrast ---- */
 .stTabs [data-baseweb="tab-list"] {
     gap: 5px;
-    background: rgba(15,23,42,.68);
+    background: #101a2c !important;
     padding: 6px;
     border-radius: 13px;
-    border: 1px solid rgba(148,163,184,.14);
+    border: 1px solid #263756;
 }
 .stTabs [data-baseweb="tab"] {
     height: 40px;
     padding: 0 15px;
     border-radius: 9px;
-    color: #94a3b8;
-    font-weight: 600;
+    color: #dbeafe !important;
+    font-weight: 700 !important;
     font-size: 13px;
 }
+.stTabs [data-baseweb="tab"] p,
+.stTabs [data-baseweb="tab"] span {
+    color: inherit !important;
+}
+.stTabs [data-baseweb="tab"]:hover {
+    background: #1a3154 !important;
+    color: #ffffff !important;
+}
 .stTabs [aria-selected="true"] {
-    background: rgba(59,130,246,.18);
-    color: #dbeafe;
+    background: #2455a5 !important;
+    color: #ffffff !important;
+}
+.stTabs [aria-selected="true"] p,
+.stTabs [aria-selected="true"] span {
+    color: #ffffff !important;
+}
+.stTabs [data-baseweb="tab-highlight"] {
+    background: #60a5fa !important;
 }
 
-/* Section headings */
-h1, h2, h3 { letter-spacing: -.02em; }
-.stMarkdown h3 { margin-top: 12px; }
-
-/* Metrics */
+/* ---- METRIC CARDS ---- */
 [data-testid="stMetric"] {
-    background: rgba(15,23,42,.72);
-    border: 1px solid rgba(148,163,184,.14);
+    background: #111c30 !important;
+    border: 1px solid #2b3d5d !important;
     border-radius: 14px;
     padding: 14px 16px;
-    box-shadow: 0 10px 25px rgba(0,0,0,.13);
+    box-shadow: 0 8px 22px rgba(0,0,0,.20);
 }
-[data-testid="stMetricLabel"] { color: #94a3b8 !important; font-size: 11px !important; }
-[data-testid="stMetricValue"] { color: #f8fafc !important; font-size: 25px !important; }
+[data-testid="stMetricLabel"],
+[data-testid="stMetricLabel"] p {
+    color: #cbd5e1 !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+}
+[data-testid="stMetricValue"],
+[data-testid="stMetricValue"] div {
+    color: #ffffff !important;
+    font-size: 25px !important;
+    font-weight: 800 !important;
+}
+[data-testid="stMetricDelta"] {
+    color: #bfdbfe !important;
+}
 
-/* Inputs */
-[data-baseweb="select"] > div,
-[data-testid="stNumberInput"] input {
-    background: rgba(15,23,42,.72) !important;
-    border-color: rgba(148,163,184,.2) !important;
-    color: #f8fafc !important;
+/* ---- SELECTBOX / NUMBER INPUT ---- */
+[data-testid="stSelectbox"] label,
+[data-testid="stNumberInput"] label,
+[data-testid="stSlider"] label,
+[data-testid="stTextInput"] label {
+    color: #e2e8f0 !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+}
+
+[data-baseweb="select"] > div {
+    background: #162238 !important;
+    border: 1px solid #3a4f73 !important;
+    color: #ffffff !important;
     border-radius: 10px !important;
 }
-label { color: #cbd5e1 !important; font-size: 12px !important; font-weight: 600 !important; }
+[data-baseweb="select"] input,
+[data-baseweb="select"] span,
+[data-baseweb="select"] div {
+    color: #ffffff !important;
+}
+[data-baseweb="popover"],
+[data-baseweb="menu"] {
+    background: #162238 !important;
+}
+[data-baseweb="menu"] li,
+[data-baseweb="menu"] [role="option"] {
+    color: #ffffff !important;
+    background: #162238 !important;
+}
+[data-baseweb="menu"] [role="option"]:hover {
+    background: #2455a5 !important;
+}
 
-/* Buttons */
+[data-testid="stNumberInput"] input,
+[data-testid="stTextInput"] input {
+    background: #162238 !important;
+    border: 1px solid #3a4f73 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    border-radius: 10px !important;
+}
+[data-testid="stNumberInput"] button {
+    background: #1d2d47 !important;
+    color: #ffffff !important;
+    border-color: #3a4f73 !important;
+}
+
+/* ---- BUTTONS ---- */
 .stButton > button {
-    border: 0;
+    border: 1px solid #4b74b8 !important;
     border-radius: 10px;
     padding: 9px 18px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
-    color: white;
-    box-shadow: 0 8px 20px rgba(37,99,235,.22);
+    font-weight: 800 !important;
+    background: #2455a5 !important;
+    color: #ffffff !important;
+    box-shadow: 0 7px 18px rgba(0,0,0,.22);
 }
-.stButton > button:hover { transform: translateY(-1px); }
+.stButton > button p,
+.stButton > button span {
+    color: #ffffff !important;
+}
+.stButton > button:hover {
+    background: #316bc5 !important;
+    border-color: #70a3ff !important;
+}
 
-/* Dataframes */
+/* ---- INFO / SUCCESS / WARNING / ERROR ---- */
+[data-testid="stAlert"] p,
+[data-testid="stAlert"] span,
+[data-testid="stAlert"] div {
+    color: #ffffff !important;
+}
+
+/* ---- DATAFRAMES ---- */
 [data-testid="stDataFrame"] {
-    border: 1px solid rgba(148,163,184,.14);
+    border: 1px solid #2b3d5d !important;
     border-radius: 12px;
     overflow: hidden;
 }
 
-/* Alerts */
-[data-testid="stAlert"] { border-radius: 12px; }
+/* ---- DIVIDERS ---- */
+hr {
+    border-color: #2b3d5d !important;
+}
 
-/* Dividers */
-hr { border-color: rgba(148,163,184,.12) !important; }
+/* ---- LINKS ---- */
+a, a:visited {
+    color: #93c5fd !important;
+}
 
-/* Compact vertical rhythm */
-[data-testid="stVerticalBlock"] > div:has(> [data-testid="stHorizontalBlock"]) { gap: .55rem; }
+/* ---- EXPANDERS ---- */
+[data-testid="stExpander"] {
+    background: #111c30 !important;
+    border: 1px solid #2b3d5d !important;
+}
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] summary span {
+    color: #ffffff !important;
+}
+
+/* ---- REMOVE EXCESSIVE GAPS, BUT KEEP CONTENT READABLE ---- */
+[data-testid="stVerticalBlock"] > div:has(> [data-testid="stHorizontalBlock"]) {
+    gap: .65rem;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -186,12 +311,10 @@ st.markdown("""
     <div class="ipl-title">🏏 IPL Analytics</div>
     <div class="ipl-subtitle">Explore team performance, player intelligence, venue trends and machine-learning powered match predictions — all in one compact dashboard.</div>
     <div class="ipl-pills">
-        <span class="ipl-pill">Team Analytics</span>
-        <span class="ipl-pill">Batting</span>
-        <span class="ipl-pill">Bowling</span>
-        <span class="ipl-pill">Venue Insights</span>
-        <span class="ipl-pill">Win Prediction</span>
-        <span class="ipl-pill">Score Prediction</span>
+        <span class="ipl-pill">📊 Performance</span>
+        <span class="ipl-pill">🏏 Players</span>
+        <span class="ipl-pill">🏟️ Venues</span>
+        <span class="ipl-pill">🤖 ML Predictions</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -225,6 +348,8 @@ matches['venue'] = matches['venue'].str.title()
 # ---------------------------------------------
 # Main Dashboard Sections
 # ---------------------------------------------
+
+st.markdown("<div class=\"nav-hint\">NAVIGATE DASHBOARD</div>", unsafe_allow_html=True)
 
 main_tab1, main_tab2 = st.tabs([
     "📊 Historical Analytics",
