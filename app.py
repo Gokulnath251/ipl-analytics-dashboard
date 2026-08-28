@@ -265,6 +265,16 @@ small, .stCaption, [data-testid="stCaptionContainer"] {
     overflow: hidden;
 }
 
+/* ---- COMPACT CHART / ELEMENT SPACING ---- */
+[data-testid="stPlotlyChart"] {
+    margin-top: -4px !important;
+    margin-bottom: -6px !important;
+}
+
+[data-testid="stImage"] img {
+    max-height: 340px !important;
+}
+
 /* ---- DIVIDERS ---- */
 hr {
     border-color: #2b3d5d !important;
@@ -519,12 +529,15 @@ with tab2:
     phases = ["Powerplay (1-6)", "Middle (7-15)", "Death (16-20)"]
     runs = [powerplay_runs, middle_runs, death_runs]
 
-    fig, ax = plt.subplots()
-    ax.bar(phases, runs)
-    ax.set_ylabel("Total Runs")
-    ax.set_title("Runs by Match Phase")
+    fig, ax = plt.subplots(figsize=(8, 2.6), dpi=110)
+    ax.bar(phases, runs, width=0.55)
+    ax.set_ylabel("Runs", fontsize=9)
+    ax.set_title("Runs by Match Phase", fontsize=11, pad=8)
+    ax.tick_params(axis="both", labelsize=8)
+    ax.grid(axis="y", alpha=0.18)
+    fig.tight_layout(pad=1.0)
 
-    st.pyplot(fig)
+    st.pyplot(fig, use_container_width=True)
 
 
 
@@ -696,12 +709,15 @@ with tab3:
     phases = ["Powerplay", "Middle", "Death"]
     wickets = [pp_wickets, mid_wickets, death_wickets]
 
-    fig, ax = plt.subplots()
-    ax.bar(phases, wickets)
-    ax.set_ylabel("Total Wickets")
-    ax.set_title("Wickets by Match Phase")
+    fig, ax = plt.subplots(figsize=(8, 2.6), dpi=110)
+    ax.bar(phases, wickets, width=0.55)
+    ax.set_ylabel("Wickets", fontsize=9)
+    ax.set_title("Wickets by Match Phase", fontsize=11, pad=8)
+    ax.tick_params(axis="both", labelsize=8)
+    ax.grid(axis="y", alpha=0.18)
+    fig.tight_layout(pad=1.0)
 
-    st.pyplot(fig)
+    st.pyplot(fig, use_container_width=True)
 
 
         # -----------------------------
@@ -782,20 +798,23 @@ with tab4:
         .reset_index()
     )
 
-    st.dataframe(top_batsmen, use_container_width=True)
+    st.dataframe(top_batsmen, use_container_width=True, height=300)
 
     import matplotlib.pyplot as plt
 
     st.subheader("📊 Top 10 Run Scorers - Visualization")
 
-    fig, ax = plt.subplots()
-    ax.bar(top_batsmen['Batter'], top_batsmen['BatsmanRun'])
-    ax.set_xlabel("Player")
-    ax.set_ylabel("Total Runs")
-    ax.set_title("Top 10 Run Scorers")
+    chart_data = top_batsmen.sort_values("BatsmanRun", ascending=True)
+    fig, ax = plt.subplots(figsize=(9, 3.2), dpi=110)
+    ax.barh(chart_data['Batter'], chart_data['BatsmanRun'], height=0.55)
+    ax.set_xlabel("Runs", fontsize=9)
+    ax.set_ylabel("")
+    ax.set_title("Top 10 Run Scorers", fontsize=11, pad=8)
+    ax.tick_params(axis="both", labelsize=8)
+    ax.grid(axis="x", alpha=0.18)
+    fig.tight_layout(pad=1.0)
 
-    plt.xticks(rotation=45)
-    st.pyplot(fig)
+    st.pyplot(fig, use_container_width=True)
 
 
 
@@ -818,20 +837,23 @@ with tab5:
         .reset_index()
     )
 
-    st.dataframe(top_bowlers, use_container_width=True)
+    st.dataframe(top_bowlers, use_container_width=True, height=300)
 
     import matplotlib.pyplot as plt
 
     st.subheader("📊 Top 10 Wicket Takers - Visualization")
 
-    fig2, ax2 = plt.subplots()
-    ax2.bar(top_bowlers['Bowler'], top_bowlers['IsWicketDelivery'])
-    ax2.set_xlabel("Player")
-    ax2.set_ylabel("Total Wickets")
-    ax2.set_title("Top 10 Wicket Takers")
+    chart_data = top_bowlers.sort_values("IsWicketDelivery", ascending=True)
+    fig2, ax2 = plt.subplots(figsize=(9, 3.2), dpi=110)
+    ax2.barh(chart_data['Bowler'], chart_data['IsWicketDelivery'], height=0.55)
+    ax2.set_xlabel("Wickets", fontsize=9)
+    ax2.set_ylabel("")
+    ax2.set_title("Top 10 Wicket Takers", fontsize=11, pad=8)
+    ax2.tick_params(axis="both", labelsize=8)
+    ax2.grid(axis="x", alpha=0.18)
+    fig2.tight_layout(pad=1.0)
 
-    plt.xticks(rotation=50)
-    st.pyplot(fig2)
+    st.pyplot(fig2, use_container_width=True)
 
 
 # -----------------------------
@@ -959,15 +981,15 @@ with tab7:
 
     with col1:
         st.write("Top WK Catches")
-        st.dataframe(wk_catches_table, use_container_width=True)
+        st.dataframe(wk_catches_table, use_container_width=True, height=250)
 
     with col2:
         st.write("WK Run Outs")
-        st.dataframe(wk_runouts_table, use_container_width=True)
+        st.dataframe(wk_runouts_table, use_container_width=True, height=250)
 
     with col3:
         st.write("Stumpings")
-        st.dataframe(wk_stumpings_table, use_container_width=True)
+        st.dataframe(wk_stumpings_table, use_container_width=True, height=250)
 
     # =====================================================
     # 🏃 FIELDING ANALYSIS
@@ -1000,11 +1022,11 @@ with tab7:
 
     with col4:
         st.write("Top Fielding Catches")
-        st.dataframe(top_fielder_catches, use_container_width=True)
+        st.dataframe(top_fielder_catches, use_container_width=True, height=250)
 
     with col5:
         st.write("Fielding Run Outs")
-        st.dataframe(top_fielder_runouts, use_container_width=True)
+        st.dataframe(top_fielder_runouts, use_container_width=True, height=250)
 
 
 with main_tab2:
@@ -1224,9 +1246,13 @@ with predictor_tab1:
                 ])
 
                 fig.update_layout(
-                    title="Predicted Match Winning Probability",
+                    title={"text": "Predicted Match Winning Probability", "font": {"size": 13}},
                     yaxis_title="Probability (%)",
-                    xaxis_title="Teams"
+                    xaxis_title="Teams",
+                    height=300,
+                    margin=dict(l=45, r=20, t=45, b=40),
+                    font=dict(size=10),
+                    showlegend=False
                 )
 
                 st.plotly_chart(fig, use_container_width=True)
@@ -1270,6 +1296,12 @@ with predictor_tab1:
                     st.warning("🟡 MEDIUM PRESSURE – Match is balanced")
                 else:
                     st.error("🔴 HIGH PRESSURE – Bowling team has advantage")
+
+                gauge_fig.update_layout(
+                    height=280,
+                    margin=dict(l=25, r=25, t=45, b=20),
+                    font=dict(size=10)
+                )
 
                 st.plotly_chart(gauge_fig, use_container_width=True)
 
@@ -1452,6 +1484,12 @@ with predictor_tab3:
         )
 
         fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
+        fig.update_layout(
+            height=300,
+            margin=dict(l=35, r=20, t=45, b=45),
+            font=dict(size=10),
+            title={"text": f"{batter} vs {bowler} Ball Outcome Prediction", "font": {"size": 12}}
+        )
 
         st.plotly_chart(fig, use_container_width=True)
 
