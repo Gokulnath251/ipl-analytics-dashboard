@@ -179,6 +179,51 @@ def get_players(df, col):
     )
 
 
+def team_strategy_summary(match_df, ball_df, team):
+    """Return batting-first vs chasing record for one team."""
+    if "BattingTeam" not in ball_df.columns or "Innings" not in ball_df.columns:
+        return pd.DataFrame()
+
+    team_balls = ball_df[ball_df["BattingTeam"] == team].copy()
+    rows = []
+
+    for match_id, group in team_balls.groupby("ID"):
+        match_row = match_df[match_df["ID"].astype(str) == str(match_id)]
+        if match_row.empty:
+            continue
+
+        innings = sorted(group["Innings"].dropna().unique())
+        if not innings:
+            continue
+
+        first_innings = innings[0]
+        situation = (
+            "Batting First" if first_innings == 1
+            else "Chasing" if first_innings == 2
+            else None
+        )
+
+        if situation:
+            rows.append({
+                "Situation": situation,
+                "Won": match_row.iloc[0]["Winner"] == team
+            })
+
+    if not rows:
+        return pd.DataFrame()
+
+    return (
+        pd.DataFrame(rows)
+        .groupby("Situation")["Won"]
+        .agg(Matches="count", Wins="sum")
+        .reset_index()
+        .assign(
+            Losses=lambda d: d["Matches"] - d["Wins"],
+            **{"Win %": lambda d: (d["Wins"] / d["Matches"] * 100).round(2)}
+        )
+    )
+
+
 # ============================================================
 # HEADER
 # ============================================================
@@ -311,6 +356,67 @@ with team_tab:
             )
             st.plotly_chart(fig, use_container_width=True)
 
+            # --------------------------------------------------------
+            # NEW: Chasing vs Batting-First comparison across all teams
+            # --------------------------------------------------------
+            st.markdown(
+                '<div class="section-title">🏏 Batting First vs Chasing — All Teams</div>',
+                unsafe_allow_html=True
+            )
+
+            strategy_rows = []
+
+            for team in teams:
+                strategy = team_strategy_summary(fm, fb, team)
+                if strategy.empty:
+                    continue
+
+                row = {"Team": team}
+                for _, r in strategy.iterrows():
+                    prefix = "Batting First" if r["Situation"] == "Batting First" else "Chasing"
+                    row[f"{prefix} Matches"] = int(r["Matches"])
+                    row[f"{prefix} Wins"] = int(r["Wins"])
+                    row[f"{prefix} Win %"] = float(r["Win %"])
+                strategy_rows.append(row)
+
+            if strategy_rows:
+                strategy_table = pd.DataFrame(strategy_rows).fillna(0)
+
+                for col in [
+                    "Batting First Matches", "Batting First Wins",
+                    "Chasing Matches", "Chasing Wins"
+                ]:
+                    if col in strategy_table.columns:
+                        strategy_table[col] = strategy_table[col].astype(int)
+
+                display_cols = [
+                    "Team",
+                    "Batting First Matches", "Batting First Wins", "Batting First Win %",
+                    "Chasing Matches", "Chasing Wins", "Chasing Win %"
+                ]
+                display_cols = [c for c in display_cols if c in strategy_table.columns]
+
+                st.dataframe(
+                    strategy_table[display_cols].sort_values(
+                        "Chasing Win %",
+                        ascending=False
+                    ),
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+                if "Chasing Win %" in strategy_table.columns:
+                    best_chaser = strategy_table.loc[
+                        strategy_table["Chasing Win %"].idxmax()
+                    ]
+                    st.info(
+                        f"🏃 **Best chasing record in the selected scope:** "
+                        f"{best_chaser['Team']} — "
+                        f"{best_chaser['Chasing Win %']:.2f}% win rate "
+                        f"({int(best_chaser['Chasing Wins'])} wins from "
+                        f"{int(best_chaser['Chasing Matches'])} chases)."
+                    )
+
         else:
 
             tm = fm[
@@ -357,72 +463,14 @@ with team_tab:
                 unsafe_allow_html=True
             )
 
-            if "BattingTeam" in fb.columns and "Innings" in fb.columns:
+            strategy = team_strategy_summary(fm, fb, selected_team)
 
-                team_balls = fb[
-                    fb["BattingTeam"] == selected_team
-                ]
-
-                strategy_rows = []
-
-                for match_id, group in team_balls.groupby("ID"):
-
-                    match_row = tm[
-                        tm["ID"].astype(str)
-                        == str(match_id)
-                    ]
-
-                    if match_row.empty:
-                        continue
-
-                    innings = sorted(
-                        group["Innings"].unique()
-                    )
-
-                    if not innings:
-                        continue
-
-                    situation = (
-                        "Batting First"
-                        if innings[0] == 1
-                        else "Chasing"
-                        if innings[0] == 2
-                        else None
-                    )
-
-                    if situation:
-                        strategy_rows.append({
-                            "Situation": situation,
-                            "Won": (
-                                match_row.iloc[0]["Winner"]
-                                == selected_team
-                            )
-                        })
-
-                strategy = pd.DataFrame(strategy_rows)
-
-                if not strategy.empty:
-
-                    summary = (
-                        strategy.groupby("Situation")["Won"]
-                        .agg(
-                            Matches="count",
-                            Wins="sum"
-                        )
-                        .reset_index()
-                    )
-
-                    summary["Win %"] = (
-                        summary["Wins"]
-                        / summary["Matches"]
-                        * 100
-                    ).round(2)
-
-                    st.dataframe(
-                        summary,
-                        use_container_width=True,
-                        hide_index=True
-                    )
+            if not strategy.empty:
+                st.dataframe(
+                    strategy,
+                    use_container_width=True,
+                    hide_index=True
+                )
 
             if selected_season == "All Seasons":
 
@@ -835,28 +883,56 @@ with batter_lb_tab:
         unsafe_allow_html=True
     )
 
-    table = (
-        fb.groupby("Batter")
-        .agg(
-            Runs=("BatsmanRun", "sum"),
-            Fours=(
-                "BatsmanRun",
-                lambda x: (x == 4).sum()
-            ),
-            Sixes=(
-                "BatsmanRun",
-                lambda x: (x == 6).sum()
+    # Build a more useful batting leaderboard: runs alone are not enough.
+    batting = []
+
+    for player, group in fb.groupby("Batter"):
+        balls = int(((group["Wides"] == 0)).sum())
+        runs = int(group["BatsmanRun"].sum())
+        fours = int((group["BatsmanRun"] == 4).sum())
+        sixes = int((group["BatsmanRun"] == 6).sum())
+
+        outs = 0
+        if "IsWicketDelivery" in group.columns and "Kind" in group.columns:
+            valid_kinds = {
+                "bowled", "caught", "caught and bowled", "lbw",
+                "stumped", "hit wicket"
+            }
+            wk = group[group["IsWicketDelivery"] == 1]
+            outs = int(
+                wk["Kind"].astype(str).str.lower().str.strip()
+                .isin(valid_kinds).sum()
             )
-        )
-        .sort_values("Runs", ascending=False)
+
+        innings = int(group["ID"].nunique())
+        sr = (runs / balls * 100) if balls else 0
+        avg = (runs / outs) if outs else runs
+
+        batting.append({
+            "Batter": player,
+            "Innings": innings,
+            "Runs": runs,
+            "Outs": outs,
+            "Average": round(avg, 2),
+            "Strike Rate": round(sr, 2),
+            "Fours": fours,
+            "Sixes": sixes
+        })
+
+    table = (
+        pd.DataFrame(batting)
+        .sort_values(["Runs", "Strike Rate"], ascending=[False, False])
         .head(25)
-        .reset_index()
     )
 
     st.dataframe(
         table,
         use_container_width=True,
         hide_index=True
+    )
+
+    st.caption(
+        "Average is runs per recorded dismissal; unbeaten innings are not counted as outs."
     )
 
 
@@ -871,21 +947,42 @@ with bowler_lb_tab:
         unsafe_allow_html=True
     )
 
-    table = (
-        fb.groupby("Bowler")
-        .agg(
-            Wickets=("IsWicketDelivery", "sum"),
-            RunsConceded=("TotalRun", "sum")
+    bowling = []
+
+    for player, group in fb.groupby("Bowler"):
+        legal_balls = int(
+            ((group["Wides"] == 0) & (group["NoBalls"] == 0)).sum()
         )
-        .sort_values("Wickets", ascending=False)
+        runs_conceded = int(group["TotalRun"].sum())
+        wickets = int(group["IsWicketDelivery"].sum())
+        overs = legal_balls / 6
+        economy = (runs_conceded / legal_balls * 6) if legal_balls else 0
+        average = (runs_conceded / wickets) if wickets else runs_conceded
+
+        bowling.append({
+            "Bowler": player,
+            "Balls": legal_balls,
+            "Overs": round(overs, 1),
+            "Wickets": wickets,
+            "Runs Conceded": runs_conceded,
+            "Economy": round(economy, 2),
+            "Bowling Average": round(average, 2)
+        })
+
+    table = (
+        pd.DataFrame(bowling)
+        .sort_values(["Wickets", "Economy"], ascending=[False, True])
         .head(25)
-        .reset_index()
     )
 
     st.dataframe(
         table,
         use_container_width=True,
         hide_index=True
+    )
+
+    st.caption(
+        "Bowling economy uses legal deliveries; wickets include all recorded wicket deliveries in the dataset."
     )
 
 
