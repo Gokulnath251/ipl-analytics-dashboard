@@ -964,6 +964,32 @@ with player_h2h_tab:
             with c3:
                 metric("Dot Ball %", f"{dot_pct:.2f}%")
 
+            # --------------------------------------------------------
+            # NEW: Plain-language matchup summary
+            # --------------------------------------------------------
+            boundary_runs = (fours * 4) + (sixes * 6)
+            boundary_pct = (
+                boundary_runs / runs * 100
+                if runs else 0
+            )
+
+            st.markdown(
+                '<div class="section-title">📌 Matchup Summary</div>',
+                unsafe_allow_html=True
+            )
+
+            st.info(
+                f"🏏 **{batter} scored {int(runs)} runs from {int(balls_faced)} balls "
+                f"against {bowler}, with {int(dismissals)} dismissal(s) and a "
+                f"strike rate of {sr:.2f}.**"
+            )
+
+            st.caption(
+                f"Boundary contribution: **{int(boundary_runs)} runs** "
+                f"({boundary_pct:.2f}% of total runs) from "
+                f"{int(fours)} fours and {int(sixes)} sixes."
+            )
+
         else:
             st.warning(
                 f"No recorded {batter} vs {bowler} deliveries "
