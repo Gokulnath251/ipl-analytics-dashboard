@@ -557,9 +557,18 @@ with team_h2h_tab:
         ].copy()
 
         matches_count = len(h2h)
-        a_wins = (h2h["Winner"] == team_a).sum()
-        b_wins = (h2h["Winner"] == team_b).sum()
+        a_wins = int((h2h["Winner"] == team_a).sum())
+        b_wins = int((h2h["Winner"] == team_b).sum())
         other = max(matches_count - a_wins - b_wins, 0)
+
+        a_win_pct = (
+            a_wins / matches_count * 100
+            if matches_count else 0
+        )
+        b_win_pct = (
+            b_wins / matches_count * 100
+            if matches_count else 0
+        )
 
         c1, c2, c3, c4 = st.columns(4)
 
@@ -574,31 +583,124 @@ with team_h2h_tab:
 
         if matches_count:
 
+            # Win-rate comparison makes the H2H easier to interpret.
             comparison = pd.DataFrame({
                 "Team": [team_a, team_b],
-                "Wins": [a_wins, b_wins]
+                "Wins": [a_wins, b_wins],
+                "Win %": [round(a_win_pct, 2), round(b_win_pct, 2)]
             })
+
+            st.markdown(
+                '<div class="section-title">📊 Head-to-Head Win Rate</div>',
+                unsafe_allow_html=True
+            )
+
+            st.dataframe(
+                comparison,
+                use_container_width=True,
+                hide_index=True
+            )
 
             fig = px.bar(
                 comparison,
                 x="Team",
                 y="Wins",
-                title=f"{team_a} vs {team_b}"
+                text="Wins",
+                title=f"{team_a} vs {team_b} — Wins"
             )
+            fig.update_traces(textposition="outside")
             st.plotly_chart(fig, use_container_width=True)
+
+            # Toss impact for this specific rivalry.
+            if "TossWinner" in h2h.columns:
+                toss_a = int((h2h["TossWinner"] == team_a).sum())
+                toss_b = int((h2h["TossWinner"] == team_b).sum())
+
+                toss_insight = pd.DataFrame({
+                    "Team": [team_a, team_b],
+                    "Toss Wins": [toss_a, toss_b]
+                })
+
+                st.markdown(
+                    '<div class="section-title">🪙 Toss Impact</div>',
+                    unsafe_allow_html=True
+                )
+
+                if "Winner" in h2h.columns:
+                    toss_insight["Toss → Match Win %"] = [
+                        round(
+                            ((h2h["TossWinner"] == team_a) &
+                             (h2h["Winner"] == team_a)).sum()
+                            / toss_a * 100, 2
+                        ) if toss_a else 0,
+                        round(
+                            ((h2h["TossWinner"] == team_b) &
+                             (h2h["Winner"] == team_b)).sum()
+                            / toss_b * 100, 2
+                        ) if toss_b else 0
+                    ]
+
+                st.dataframe(
+                    toss_insight,
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+            # Most recent meetings, newest first when a date is available.
+            recent = h2h.copy()
+            if "Date" in recent.columns:
+                recent["_sort_date"] = pd.to_datetime(
+                    recent["Date"], errors="coerce"
+                )
+                recent = recent.sort_values(
+                    "_sort_date", ascending=False
+                ).drop(columns="_sort_date")
+
+            recent = recent.head(10).copy()
+
+            if "Winner" in recent.columns:
+                recent["Result"] = recent["Winner"].apply(
+                    lambda winner:
+                        team_a if winner == team_a
+                        else team_b if winner == team_b
+                        else "Other"
+                )
 
             cols = [
                 c for c in
                 ["ID", "Season", "Date", "Venue",
-                 "Team1", "Team2", "Winner"]
-                if c in h2h.columns
+                 "Team1", "Team2", "Winner", "Result"]
+                if c in recent.columns
             ]
 
+            st.markdown(
+                '<div class="section-title">🕒 Recent Meetings</div>',
+                unsafe_allow_html=True
+            )
+
             st.dataframe(
-                h2h[cols],
+                recent[cols],
                 use_container_width=True,
                 hide_index=True
             )
+
+            if a_wins > b_wins:
+                st.success(
+                    f"🏆 **{team_a} lead this rivalry:** "
+                    f"{a_wins} wins to {b_wins} "
+                    f"({a_win_pct:.2f}% vs {b_win_pct:.2f}%)."
+                )
+            elif b_wins > a_wins:
+                st.success(
+                    f"🏆 **{team_b} lead this rivalry:** "
+                    f"{b_wins} wins to {a_wins} "
+                    f"({b_win_pct:.2f}% vs {a_win_pct:.2f}%)."
+                )
+            else:
+                st.info(
+                    f"⚖️ **The rivalry is level:** "
+                    f"{a_wins} wins each."
+                )
 
         else:
             st.info("No matches found for this pairing.")
@@ -883,56 +985,28 @@ with batter_lb_tab:
         unsafe_allow_html=True
     )
 
-    # Build a more useful batting leaderboard: runs alone are not enough.
-    batting = []
-
-    for player, group in fb.groupby("Batter"):
-        balls = int(((group["Wides"] == 0)).sum())
-        runs = int(group["BatsmanRun"].sum())
-        fours = int((group["BatsmanRun"] == 4).sum())
-        sixes = int((group["BatsmanRun"] == 6).sum())
-
-        outs = 0
-        if "IsWicketDelivery" in group.columns and "Kind" in group.columns:
-            valid_kinds = {
-                "bowled", "caught", "caught and bowled", "lbw",
-                "stumped", "hit wicket"
-            }
-            wk = group[group["IsWicketDelivery"] == 1]
-            outs = int(
-                wk["Kind"].astype(str).str.lower().str.strip()
-                .isin(valid_kinds).sum()
-            )
-
-        innings = int(group["ID"].nunique())
-        sr = (runs / balls * 100) if balls else 0
-        avg = (runs / outs) if outs else runs
-
-        batting.append({
-            "Batter": player,
-            "Innings": innings,
-            "Runs": runs,
-            "Outs": outs,
-            "Average": round(avg, 2),
-            "Strike Rate": round(sr, 2),
-            "Fours": fours,
-            "Sixes": sixes
-        })
-
     table = (
-        pd.DataFrame(batting)
-        .sort_values(["Runs", "Strike Rate"], ascending=[False, False])
+        fb.groupby("Batter")
+        .agg(
+            Runs=("BatsmanRun", "sum"),
+            Fours=(
+                "BatsmanRun",
+                lambda x: (x == 4).sum()
+            ),
+            Sixes=(
+                "BatsmanRun",
+                lambda x: (x == 6).sum()
+            )
+        )
+        .sort_values("Runs", ascending=False)
         .head(25)
+        .reset_index()
     )
 
     st.dataframe(
         table,
         use_container_width=True,
         hide_index=True
-    )
-
-    st.caption(
-        "Average is runs per recorded dismissal; unbeaten innings are not counted as outs."
     )
 
 
@@ -947,42 +1021,21 @@ with bowler_lb_tab:
         unsafe_allow_html=True
     )
 
-    bowling = []
-
-    for player, group in fb.groupby("Bowler"):
-        legal_balls = int(
-            ((group["Wides"] == 0) & (group["NoBalls"] == 0)).sum()
-        )
-        runs_conceded = int(group["TotalRun"].sum())
-        wickets = int(group["IsWicketDelivery"].sum())
-        overs = legal_balls / 6
-        economy = (runs_conceded / legal_balls * 6) if legal_balls else 0
-        average = (runs_conceded / wickets) if wickets else runs_conceded
-
-        bowling.append({
-            "Bowler": player,
-            "Balls": legal_balls,
-            "Overs": round(overs, 1),
-            "Wickets": wickets,
-            "Runs Conceded": runs_conceded,
-            "Economy": round(economy, 2),
-            "Bowling Average": round(average, 2)
-        })
-
     table = (
-        pd.DataFrame(bowling)
-        .sort_values(["Wickets", "Economy"], ascending=[False, True])
+        fb.groupby("Bowler")
+        .agg(
+            Wickets=("IsWicketDelivery", "sum"),
+            RunsConceded=("TotalRun", "sum")
+        )
+        .sort_values("Wickets", ascending=False)
         .head(25)
+        .reset_index()
     )
 
     st.dataframe(
         table,
         use_container_width=True,
         hide_index=True
-    )
-
-    st.caption(
-        "Bowling economy uses legal deliveries; wickets include all recorded wicket deliveries in the dataset."
     )
 
 
