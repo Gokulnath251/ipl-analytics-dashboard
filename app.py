@@ -741,203 +741,130 @@ if active_tab == "⚔️ Team Head-to-Head":
 
 # ============================================================
 # BATTING ANALYSIS
-# ============================================================
 
 if active_tab == "🏏 Batting Analysis":
-
-    st.markdown(
-        '<div class="section-title">🏏 Batting Analysis</div>',
-        unsafe_allow_html=True
-    )
-
+    st.markdown('<div class="section-title">🏏 Batting Analysis</div>', unsafe_allow_html=True)
     batters = get_players(fb, "Batter")
 
     if batters:
-
-        # Keep the previously selected batter when the global season changes.
-        # If that player is not present in the new season, fall back safely.
         previous_batter = st.session_state.get("batting_analysis_batter")
         if previous_batter in batters:
             st.session_state["batting_analysis_batter"] = previous_batter
         elif previous_batter is not None:
             st.session_state["batting_analysis_batter"] = batters[0]
 
-        batter = st.selectbox(
-            "Select Batter",
-            batters,
-            key="batting_analysis_batter"
-        )
+        batter = st.selectbox("Select Batter", batters, key="batting_analysis_batter")
+        bd = fb[fb["Batter"] == batter].copy()
+        bd["LegalBall"] = bd["Wides"] == 0
+        bd["Dismissed"] = bd["PlayerOut"].astype(str).str.strip() == batter
 
-        bd = fb[fb["Batter"] == batter]
-
+        matches_played = bd["ID"].nunique()
+        batting_innings = (bd["ID"].astype(str) + "_" + bd["Innings"].astype(str)).nunique()
         runs = bd["BatsmanRun"].sum()
-        balls_faced = len(
-            bd[bd["Wides"] == 0]
-        )
-        fours = (bd["BatsmanRun"] == 4).sum()
-        sixes = (bd["BatsmanRun"] == 6).sum()
-
-        sr = (
-            runs / balls_faced * 100
-            if balls_faced else 0
-        )
+        balls_faced = int(bd["LegalBall"].sum())
+        outs = int(bd["Dismissed"].sum())
+        fours = int((bd["BatsmanRun"] == 4).sum())
+        sixes = int((bd["BatsmanRun"] == 6).sum())
+        best_score = int(bd.groupby("ID")["BatsmanRun"].sum().max()) if matches_played else 0
+        sr = runs / balls_faced * 100 if balls_faced else 0
+        avg = runs / outs if outs else runs
 
         c1, c2, c3, c4 = st.columns(4)
+        with c1: metric("Matches", fmt(matches_played))
+        with c2: metric("Innings", fmt(batting_innings))
+        with c3: metric("Runs", fmt(runs))
+        with c4: metric("Best Score", fmt(best_score))
+        c1, c2, c3, c4 = st.columns(4)
+        with c1: metric("Average", f"{avg:.2f}")
+        with c2: metric("Balls", fmt(balls_faced))
+        with c3: metric("Strike Rate", f"{sr:.2f}")
+        with c4: metric("4s / 6s", f"{fours} / {sixes}")
+        c1, c2 = st.columns(2)
+        with c1: metric("Outs", fmt(outs))
+        with c2: metric("Dot Balls", fmt(int(((bd["BatsmanRun"] == 0) & (bd["Wides"] == 0) & (bd["NoBalls"] == 0)).sum())))
 
-        with c1:
-            metric("Runs", fmt(runs))
-        with c2:
-            metric("Balls", fmt(balls_faced))
-        with c3:
-            metric("Strike Rate", f"{sr:.2f}")
-        with c4:
-            metric("4s / 6s", f"{fours} / {sixes}")
-
-        # --------------------------------------------------------
-        # NEW: Season-wise batting performance
-        # --------------------------------------------------------
-        st.markdown(
-            '<div class="section-title">📈 Season-wise Batting Performance</div>',
-            unsafe_allow_html=True
-        )
-
-        season_batting = (
-            bd.groupby("Season")
-            .agg(
-                Runs=("BatsmanRun", "sum"),
-                Balls=("Wides", lambda s: (s == 0).sum())
-            )
-            .reset_index()
-        )
-
+        st.markdown('<div class="section-title">📈 Season-wise Batting Performance</div>', unsafe_allow_html=True)
+        season_batting = bd.groupby("Season").agg(Runs=("BatsmanRun", "sum"), Balls=("LegalBall", "sum")).reset_index()
         if not season_batting.empty:
-            season_batting["Strike Rate"] = (
-                season_batting["Runs"]
-                / season_batting["Balls"]
-                * 100
-            ).round(2)
-
-            season_batting = season_batting.sort_values("Season")
-
-            st.dataframe(
-                season_batting,
-                use_container_width=True,
-                hide_index=True
-            )
-
-            fig = px.line(
-                season_batting,
-                x="Season",
-                y="Runs",
-                markers=True,
-                title=f"{batter} — Runs by Season"
-            )
+            season_batting["Strike Rate"] = (season_batting["Runs"] / season_batting["Balls"].replace(0, pd.NA) * 100).round(2).fillna(0)
+            st.dataframe(season_batting, use_container_width=True, hide_index=True)
+            fig = px.line(season_batting, x="Season", y="Runs", markers=True, title=f"{batter} — Runs by Season")
             st.plotly_chart(fig, use_container_width=True)
 
-        top = (
-            fb.groupby("Batter")["BatsmanRun"]
-            .sum()
-            .sort_values(ascending=False)
-            .head(20)
-            .reset_index()
-        )
-
-        top.columns = ["Batter", "Runs"]
-
-        st.markdown(
-            '<div class="section-title">📊 Top Run Scorers</div>',
-            unsafe_allow_html=True
-        )
-
-        st.dataframe(
-            top,
-            use_container_width=True,
-            hide_index=True
-        )
-
+        st.info(f"🏏 **{batter}: {int(runs)} runs in {matches_played} matches | Best: {best_score} | SR: {sr:.2f} | Average: {avg:.2f}.**")
     else:
         st.info("No batting data available.")
 
 
-# ============================================================
 # BOWLING ANALYSIS
-# ============================================================
 
 if active_tab == "🎯 Bowling Analysis":
-
-    st.markdown(
-        '<div class="section-title">🎯 Bowling Analysis</div>',
-        unsafe_allow_html=True
-    )
-
+    st.markdown('<div class="section-title">🎯 Bowling Analysis</div>', unsafe_allow_html=True)
     bowlers = get_players(fb, "Bowler")
 
     if bowlers:
-
         previous_bowler = st.session_state.get("bowling_analysis_bowler")
         if previous_bowler in bowlers:
             st.session_state["bowling_analysis_bowler"] = previous_bowler
         elif previous_bowler is not None:
             st.session_state["bowling_analysis_bowler"] = bowlers[0]
 
-        bowler = st.selectbox(
-            "Select Bowler",
-            bowlers,
-            key="bowling_analysis_bowler"
-        )
+        bowler = st.selectbox("Select Bowler", bowlers, key="bowling_analysis_bowler")
+        bd = fb[fb["Bowler"] == bowler].copy()
+        for col in ["TotalRun", "Wides", "NoBalls", "Byes", "LegByes", "Penalty", "IsWicketDelivery"]:
+            if col not in bd.columns: bd[col] = 0
+            bd[col] = pd.to_numeric(bd[col], errors="coerce").fillna(0)
+        bd["RunsConceded"] = (bd["TotalRun"] - bd["Byes"] - bd["LegByes"] - bd["Penalty"]).clip(lower=0)
+        bd["LegalBall"] = ((bd["Wides"] == 0) & (bd["NoBalls"] == 0)).astype(int)
+        non_bowler_dismissals = {"run out", "retired hurt", "retired out", "obstructing the field", "retired not out"}
+        if "Kind" in bd.columns:
+            bd["KindClean"] = bd["Kind"].astype(str).str.strip().str.lower()
+            bd["BowlerWicket"] = ((bd["IsWicketDelivery"] == 1) & (~bd["KindClean"].isin(non_bowler_dismissals))).astype(int)
+        else:
+            bd["BowlerWicket"] = bd["IsWicketDelivery"].astype(int)
 
-        bd = fb[fb["Bowler"] == bowler]
+        matches_bowled = bd["ID"].nunique()
+        bowling_innings = (bd["ID"].astype(str) + "_" + bd["Innings"].astype(str)).nunique()
+        wickets = int(bd["BowlerWicket"].sum())
+        runs_conceded = int(bd["RunsConceded"].sum())
+        legal_balls = int(bd["LegalBall"].sum())
+        overs = legal_balls // 6 + (legal_balls % 6) / 10
+        economy = runs_conceded / (legal_balls / 6) if legal_balls else 0
+        bowling_sr = legal_balls / wickets if wickets else 0
 
-        wickets = bd["IsWicketDelivery"].sum()
-        runs_conceded = bd["TotalRun"].sum()
+        match_figures = bd.groupby("ID").agg(Wickets=("BowlerWicket", "sum"), Runs=("RunsConceded", "sum")).reset_index()
+        if not match_figures.empty:
+            best_row = match_figures.sort_values(["Wickets", "Runs"], ascending=[False, True]).iloc[0]
+            best_figures = f"{int(best_row['Wickets'])}/{int(best_row['Runs'])}"
+        else:
+            best_figures = "0/0"
 
-        legal = bd[
-            (bd["Wides"] == 0)
-            & (bd["NoBalls"] == 0)
-        ]
+        c1, c2, c3, c4 = st.columns(4)
+        with c1: metric("Matches", fmt(matches_bowled))
+        with c2: metric("Innings", fmt(bowling_innings))
+        with c3: metric("Wickets", fmt(wickets))
+        with c4: metric("Best Figures", best_figures)
+        c1, c2, c3, c4 = st.columns(4)
+        with c1: metric("Runs Conceded", fmt(runs_conceded))
+        with c2: metric("Overs", f"{overs:.1f}")
+        with c3: metric("Economy", f"{economy:.2f}")
+        with c4: metric("Strike Rate", f"{bowling_sr:.2f}")
+        c1 = st.columns(1)[0]
+        with c1: metric("Legal Balls", fmt(legal_balls))
 
-        overs = len(legal) / 6
+        st.markdown('<div class="section-title">📈 Season-wise Bowling Performance</div>', unsafe_allow_html=True)
+        season_bowling = bd.groupby("Season").agg(Matches=("ID", "nunique"), Wickets=("BowlerWicket", "sum"), Balls=("LegalBall", "sum"), Runs=("RunsConceded", "sum")).reset_index()
+        if not season_bowling.empty:
+            season_bowling["Economy"] = (season_bowling["Runs"] / (season_bowling["Balls"] / 6).replace(0, pd.NA)).round(2).fillna(0)
+            st.dataframe(season_bowling, use_container_width=True, hide_index=True)
+            fig = px.line(season_bowling, x="Season", y="Wickets", markers=True, title=f"{bowler} — Wickets by Season")
+            st.plotly_chart(fig, use_container_width=True)
 
-        economy = (
-            runs_conceded / overs
-            if overs else 0
-        )
-
-        c1, c2, c3 = st.columns(3)
-
-        with c1:
-            metric("Wickets", fmt(wickets))
-        with c2:
-            metric("Runs Conceded", fmt(runs_conceded))
-        with c3:
-            metric("Economy", f"{economy:.2f}")
-
-        top = (
-            fb.groupby("Bowler")["IsWicketDelivery"]
-            .sum()
-            .sort_values(ascending=False)
-            .head(20)
-            .reset_index()
-        )
-
-        top.columns = ["Bowler", "Wickets"]
-
-        st.markdown(
-            '<div class="section-title">📊 Top Wicket Takers</div>',
-            unsafe_allow_html=True
-        )
-
-        st.dataframe(
-            top,
-            use_container_width=True,
-            hide_index=True
-        )
-
+        st.info(f"🎯 **{bowler}: {wickets} wickets in {matches_bowled} matches | Best figures: {best_figures} | Economy: {economy:.2f} | Strike rate: {bowling_sr:.2f}.**")
     else:
         st.info("No bowling data available.")
 
 
-# ============================================================
 # PLAYER HEAD-TO-HEAD
 # ============================================================
 
@@ -1100,128 +1027,75 @@ if active_tab == "⚔️ Player Head-to-Head":
 
 # ============================================================
 # BATTERS LEADERBOARD
-# ============================================================
 
 if active_tab == "🏆 Batters Leaderboards":
-
-    st.markdown(
-        '<div class="section-title">🏆 Batters Leaderboard</div>',
-        unsafe_allow_html=True
-    )
-
-    # Build meaningful batting metrics from the ball-by-ball data.
+    st.markdown('<div class="section-title">🏆 Batters Leaderboard</div>', unsafe_allow_html=True)
     batting = fb.copy()
-
     batting["LegalBall"] = batting["Wides"] == 0
-
-    batting["IsBatterOut"] = (
-        batting["PlayerOut"].fillna("").astype(str).str.strip()
-        == batting["Batter"].fillna("").astype(str).str.strip()
-    )
-
-    table = (
-        batting.groupby("Batter")
-        .agg(
-            Innings=("ID", "nunique"),
-            Runs=("BatsmanRun", "sum"),
-            Balls=("LegalBall", "sum"),
-            Outs=("IsBatterOut", "sum"),
-            Fours=("BatsmanRun", lambda x: (x == 4).sum()),
-            Sixes=("BatsmanRun", lambda x: (x == 6).sum())
-        )
-        .reset_index()
-    )
-
-    table["Average"] = (
-        table["Runs"] / table["Outs"].replace(0, pd.NA)
-    ).round(2)
-
-    table["Strike Rate"] = (
-        table["Runs"] / table["Balls"].replace(0, pd.NA) * 100
-    ).round(2)
-
-    # Keep the leaderboard focused on regular contributors.
-    min_runs = st.slider(
-        "Minimum Runs",
-        min_value=0,
-        max_value=5000,
-        value=100,
-        step=50,
-        key="batting_leaderboard_min_runs"
-    )
-
-    sort_by = st.selectbox(
-        "Rank By",
-        ["Runs", "Average", "Strike Rate", "Fours", "Sixes"],
-        key="batting_leaderboard_sort"
-    )
-
-    table = table[table["Runs"] >= min_runs].copy()
-    table = table.sort_values(
-        sort_by,
-        ascending=False,
-        na_position="last"
-    ).head(25)
-
-    table["Average"] = table["Average"].fillna(0)
-    table["Strike Rate"] = table["Strike Rate"].fillna(0)
-
-    display_cols = [
-        "Batter", "Innings", "Runs", "Outs", "Average",
-        "Balls", "Strike Rate", "Fours", "Sixes"
-    ]
-
-    st.dataframe(
-        table[display_cols],
-        use_container_width=True,
-        hide_index=True
-    )
-
+    batting["IsBatterOut"] = batting["PlayerOut"].astype(str).str.strip() == batting["Batter"].astype(str).str.strip()
+    batting["InningsKey"] = batting["ID"].astype(str) + "_" + batting["Innings"].astype(str)
+    table = batting.groupby("Batter").agg(Matches=("ID", "nunique"), Innings=("InningsKey", "nunique"), Runs=("BatsmanRun", "sum"), Balls=("LegalBall", "sum"), Outs=("IsBatterOut", "sum"), Fours=("BatsmanRun", lambda x: (x == 4).sum()), Sixes=("BatsmanRun", lambda x: (x == 6).sum())).reset_index()
+    best_scores = batting.groupby(["Batter", "ID"])["BatsmanRun"].sum().groupby(level=0).max().rename("Best Score")
+    table = table.join(best_scores, on="Batter")
+    table["Average"] = (table["Runs"] / table["Outs"].mask(table["Outs"] == 0)).astype(float).round(2)
+    table["Strike Rate"] = (table["Runs"] / table["Balls"].mask(table["Balls"] == 0) * 100).astype(float).round(2)
+    min_runs = st.slider("Minimum Runs", 0, 5000, 100, 50, key="batting_leaderboard_min_runs")
+    sort_by = st.selectbox("Rank By", ["Runs", "Best Score", "Average", "Strike Rate", "Fours", "Sixes"], key="batting_leaderboard_sort")
+    table = table[table["Runs"] >= min_runs].sort_values(sort_by, ascending=False, na_position="last").head(25).copy()
+    table[["Average", "Strike Rate"]] = table[["Average", "Strike Rate"]].fillna(0)
+    st.dataframe(table[["Batter", "Matches", "Innings", "Runs", "Best Score", "Outs", "Average", "Balls", "Strike Rate", "Fours", "Sixes"]], use_container_width=True, hide_index=True)
     if not table.empty:
         leader = table.iloc[0]
-        st.success(
-            f"🏏 **{leader['Batter']} leads this leaderboard in {sort_by}** "
-            f"with {leader[sort_by]:.2f} "
-            f"({int(leader['Runs'])} runs)."
-            if sort_by in ["Average", "Strike Rate"]
-            else f"🏏 **{leader['Batter']} leads this leaderboard in {sort_by}** "
-                 f"with {int(leader[sort_by])} "
-                 f"({int(leader['Runs'])} runs)."
-        )
+        value = leader[sort_by]
+        text = f"{value:.2f}" if sort_by in ["Average", "Strike Rate"] else f"{int(value)}"
+        st.success(f"🏏 **{leader['Batter']} leads by {sort_by}: {text}.**")
     else:
         st.info("No batters match the selected minimum-runs filter.")
 
 
-# ============================================================
 # BOWLERS LEADERBOARD
-# ============================================================
 
 if active_tab == "🏆 Bowlers Leaderboards":
+    st.markdown('<div class="section-title">🏆 Bowlers Leaderboard</div>', unsafe_allow_html=True)
+    bowling = fb.copy()
+    for col in ["TotalRun", "Wides", "NoBalls", "Byes", "LegByes", "Penalty", "IsWicketDelivery"]:
+        if col not in bowling.columns: bowling[col] = 0
+        bowling[col] = pd.to_numeric(bowling[col], errors="coerce").fillna(0)
+    bowling["RunsConceded"] = (bowling["TotalRun"] - bowling["Byes"] - bowling["LegByes"] - bowling["Penalty"]).clip(lower=0)
+    bowling["LegalBall"] = ((bowling["Wides"] == 0) & (bowling["NoBalls"] == 0)).astype(int)
+    non_bowler_dismissals = {"run out", "retired hurt", "retired out", "obstructing the field", "retired not out"}
+    if "Kind" in bowling.columns:
+        bowling["KindClean"] = bowling["Kind"].astype(str).str.strip().str.lower()
+    else:
+        bowling["KindClean"] = ""
+    bowling["BowlerWicket"] = ((bowling["IsWicketDelivery"] == 1) & (~bowling["KindClean"].isin(non_bowler_dismissals))).astype(int)
+    bowling["InningsKey"] = bowling["ID"].astype(str) + "_" + bowling["Innings"].astype(str)
+    table = bowling.groupby("Bowler").agg(Matches=("ID", "nunique"), Innings=("InningsKey", "nunique"), Balls=("LegalBall", "sum"), Runs=("RunsConceded", "sum"), Wickets=("BowlerWicket", "sum")).reset_index()
+    figures = bowling.groupby(["Bowler", "ID"]).agg(Wickets=("BowlerWicket", "sum"), Runs=("RunsConceded", "sum")).reset_index().sort_values(["Bowler", "Wickets", "Runs"], ascending=[True, False, True]).drop_duplicates("Bowler")
+    figures["Best Figures"] = figures["Wickets"].astype(int).astype(str) + "/" + figures["Runs"].astype(int).astype(str)
+    table = table.merge(figures[["Bowler", "Best Figures"]], on="Bowler", how="left")
+    table["Overs"] = table["Balls"] // 6 + (table["Balls"] % 6) / 10
+    table["Economy"] = (table["Runs"] / (table["Balls"] / 6).mask(table["Balls"] == 0)).astype(float).round(2)
+    table["Bowling Average"] = (table["Runs"] / table["Wickets"].mask(table["Wickets"] == 0)).astype(float).round(2)
+    table["Strike Rate"] = (table["Balls"] / table["Wickets"].mask(table["Wickets"] == 0)).astype(float).round(2)
+    min_balls = st.number_input("Minimum legal balls", min_value=0, value=60, step=6)
+    ranking = st.selectbox("Rank by", ["Wickets", "Best Figures", "Economy", "Bowling Average", "Strike Rate", "Runs"])
+    filtered = table[table["Balls"] >= min_balls].copy()
+    if ranking == "Best Figures": filtered = filtered.sort_values(["Wickets", "Runs"], ascending=[False, True])
+    elif ranking in ["Economy", "Bowling Average", "Strike Rate"]: filtered = filtered.sort_values(ranking, ascending=True, na_position="last")
+    else: filtered = filtered.sort_values(ranking, ascending=False)
+    filtered = filtered.head(25)
+    st.dataframe(filtered[["Bowler", "Matches", "Innings", "Balls", "Overs", "Runs", "Wickets", "Best Figures", "Economy", "Bowling Average", "Strike Rate"]], use_container_width=True, hide_index=True)
+    if not filtered.empty:
+        leader = filtered.iloc[0]
+        if ranking == "Best Figures": st.success(f"🎯 **Best figures leader: {leader['Bowler']} ({leader['Best Figures']}).**")
+        else:
+            value = leader[ranking]
+            text = f"{value:.2f}" if pd.notna(value) else "N/A"
+            st.success(f"🎯 **{leader['Bowler']} leads by {ranking}: {text}.**")
+    else: st.info("No bowlers match the selected minimum-balls filter.")
 
-    st.markdown(
-        '<div class="section-title">🏆 Bowlers Leaderboard</div>',
-        unsafe_allow_html=True
-    )
 
-    table = (
-        fb.groupby("Bowler")
-        .agg(
-            Wickets=("IsWicketDelivery", "sum"),
-            RunsConceded=("TotalRun", "sum")
-        )
-        .sort_values("Wickets", ascending=False)
-        .head(25)
-        .reset_index()
-    )
-
-    st.dataframe(
-        table,
-        use_container_width=True,
-        hide_index=True
-    )
-
-
-# ============================================================
 # VENUE ANALYSIS
 # ============================================================
 
