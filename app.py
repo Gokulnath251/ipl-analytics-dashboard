@@ -669,7 +669,24 @@ if active_tab == "⚔️ Team Head-to-Head":
                     "_sort_date", ascending=False
                 ).drop(columns="_sort_date")
 
-            recent = recent.head(10).copy()
+            # Let the user choose how much of the rivalry history to see.
+            meeting_options = [10, 20, 50]
+            if len(recent) not in meeting_options:
+                meeting_options.append(len(recent))
+            meeting_options = sorted(set(meeting_options))
+            meeting_labels = [str(n) for n in meeting_options[:-1]] + (["All"] if meeting_options and meeting_options[-1] == len(recent) and len(recent) not in [10, 20, 50] else [])
+
+            st.selectbox(
+                "Show meetings",
+                meeting_labels,
+                index=0,
+                key="h2h_meeting_limit"
+            )
+            selected_meetings = st.session_state["h2h_meeting_limit"]
+            if selected_meetings == "All":
+                recent = recent.copy()
+            else:
+                recent = recent.head(int(selected_meetings)).copy()
 
             if "Winner" in recent.columns:
                 recent["Result"] = recent["Winner"].apply(
@@ -1092,29 +1109,87 @@ if active_tab == "🏆 Batters Leaderboards":
         unsafe_allow_html=True
     )
 
+    # Build meaningful batting metrics from the ball-by-ball data.
+    batting = fb.copy()
+
+    batting["LegalBall"] = batting["Wides"] == 0
+
+    batting["IsBatterOut"] = (
+        batting["PlayerOut"].fillna("").astype(str).str.strip()
+        == batting["Batter"].fillna("").astype(str).str.strip()
+    )
+
     table = (
-        fb.groupby("Batter")
+        batting.groupby("Batter")
         .agg(
+            Innings=("ID", "nunique"),
             Runs=("BatsmanRun", "sum"),
-            Fours=(
-                "BatsmanRun",
-                lambda x: (x == 4).sum()
-            ),
-            Sixes=(
-                "BatsmanRun",
-                lambda x: (x == 6).sum()
-            )
+            Balls=("LegalBall", "sum"),
+            Outs=("IsBatterOut", "sum"),
+            Fours=("BatsmanRun", lambda x: (x == 4).sum()),
+            Sixes=("BatsmanRun", lambda x: (x == 6).sum())
         )
-        .sort_values("Runs", ascending=False)
-        .head(25)
         .reset_index()
     )
 
+    table["Average"] = (
+        table["Runs"] / table["Outs"].replace(0, pd.NA)
+    ).round(2)
+
+    table["Strike Rate"] = (
+        table["Runs"] / table["Balls"].replace(0, pd.NA) * 100
+    ).round(2)
+
+    # Keep the leaderboard focused on regular contributors.
+    min_runs = st.slider(
+        "Minimum Runs",
+        min_value=0,
+        max_value=5000,
+        value=100,
+        step=50,
+        key="batting_leaderboard_min_runs"
+    )
+
+    sort_by = st.selectbox(
+        "Rank By",
+        ["Runs", "Average", "Strike Rate", "Fours", "Sixes"],
+        key="batting_leaderboard_sort"
+    )
+
+    table = table[table["Runs"] >= min_runs].copy()
+    table = table.sort_values(
+        sort_by,
+        ascending=False,
+        na_position="last"
+    ).head(25)
+
+    table["Average"] = table["Average"].fillna(0)
+    table["Strike Rate"] = table["Strike Rate"].fillna(0)
+
+    display_cols = [
+        "Batter", "Innings", "Runs", "Outs", "Average",
+        "Balls", "Strike Rate", "Fours", "Sixes"
+    ]
+
     st.dataframe(
-        table,
+        table[display_cols],
         use_container_width=True,
         hide_index=True
     )
+
+    if not table.empty:
+        leader = table.iloc[0]
+        st.success(
+            f"🏏 **{leader['Batter']} leads this leaderboard in {sort_by}** "
+            f"with {leader[sort_by]:.2f} "
+            f"({int(leader['Runs'])} runs)."
+            if sort_by in ["Average", "Strike Rate"]
+            else f"🏏 **{leader['Batter']} leads this leaderboard in {sort_by}** "
+                 f"with {int(leader[sort_by])} "
+                 f"({int(leader['Runs'])} runs)."
+        )
+    else:
+        st.info("No batters match the selected minimum-runs filter.")
 
 
 # ============================================================
