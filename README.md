@@ -1,88 +1,100 @@
-# 🏏 IPL Historical Analytics Dashboard
+# 🏏 IPL Analytics Dashboard
 
-An interactive IPL analytics dashboard built with **Python, Pandas, Plotly and Streamlit**.
+An interactive **IPL historical analytics dashboard** built with Python, Pandas, Plotly, and Streamlit.
 
-The project explores IPL match and ball-by-ball data from **2007/08 to 2026**, allowing users to analyse teams, players, matches, venues and cricket trends through interactive filters and visualisations.
+The project analyzes IPL match and ball-by-ball data across **2007/08–2026** and turns it into interactive team, player, venue, fielding, and match-strategy insights.
 
-## 📊 Features
+## 🚀 Live Demo
 
-### Team Analytics
-- Overall team performance
-- Matches played and won
-- Win percentage
+Deployed with Streamlit Community Cloud.
+
+> Add your live Streamlit URL here:
+> `https://gokul-ipl-analytics.streamlit.app/`
+
+## 📊 Dashboard Features
+
+### 🏆 Team Analytics
+- Team matches, wins, and win percentage
+- Batting-first vs chasing performance
 - Toss impact
-- Batting first vs chasing
-- Season-wise performance
+- Season-wise team performance
 
-### ⚔️ Head-to-Head
-- Team vs Team
-- Player vs Player
-- Batter vs Bowler
-- Runs, balls, strike rate and dismissals
-- 4s, 6s and dot balls
+### ⚔️ Head-to-Head Analytics
+- Team vs Team historical records
+- Win-rate comparison
+- Toss impact
+- Recent meetings with **10 / 20 / 50 / All** options
 
 ### 🏏 Batting Analytics
-- Individual batter analysis
-- Runs
-- Balls faced
+- Matches and innings
+- Runs and best score
+- Batting average
 - Strike rate
-- Boundaries
-- Top run scorers
+- Balls faced
+- 4s and 6s
+- Outs and dot balls
+- Season-wise batting performance
 
 ### 🎯 Bowling Analytics
-- Individual bowler analysis
+- Matches and innings
 - Wickets
+- Best bowling figures
 - Runs conceded
-- Economy
-- Top wicket takers
+- Overs and economy
+- Bowling strike rate
+- Legal balls
+- Season-wise bowling performance
+
+### 👥 Player Head-to-Head
+- Batter vs Bowler matchup
+- Balls faced
+- Runs scored
+- Dismissals
+- Strike rate
+- Boundaries
+- Dot-ball percentage
+- Matchup summary
 
 ### 🏆 Leaderboards
-- Top batters
-- Top bowlers
-- Runs
-- Wickets
-- Boundaries
+- Advanced batter rankings
+- Advanced bowler rankings
+- Innings, runs, wickets, averages, strike rates, economy, boundaries, and best performances
+- Minimum-performance filters and ranking options
 
-### 🏟️ Venue Analytics
-- Matches played
-- Average innings score
-- Venue-wise match information
+### 🏟️ Other Analytics
+- Venue analysis
+- Fielding and dismissal analysis
+- Recent team form
+- Toss analysis
 
-### 🤜 Fielding Analytics
-- Fielding involvements
-- Dismissal types
-- Wicket analysis
+## 🛠️ Tech Stack
 
-### 🔥 Recent Form
-- Last 5 matches
-- Wins and losses
-- Recent win percentage
+- **Python**
+- **Pandas**
+- **Streamlit**
+- **Plotly**
 
-### 🪙 Toss Analytics
-- Tosses recorded
-- Toss winner vs match winner
-- Toss decision impact
-
-## 📅 Data Coverage
-
-**IPL: 2007/08 – 2026**
+## 📁 Data
 
 The dashboard uses:
-- Match-level information
+- Match information
 - Ball-by-ball match data
 
-## 🛠️ Technology
+The data is transformed and aggregated to calculate player, team, venue, fielding, toss, and matchup statistics.
 
-- Python
-- Pandas
-- Plotly
-- Streamlit
-- Git & GitHub
-
-## 🚀 Run Locally
-
-Clone the repository:
+## ▶️ Run Locally
 
 ```bash
-git clone https://github.com/Gokulnath251/ipl-analytics-dashboard.git
-cd ipl-analytics-dashboard
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+## 🎯 Project Goal
+
+The goal of this project is to demonstrate practical **data analysis, data transformation, statistical aggregation, interactive visualization, and dashboard development** using a real-world sports dataset.
+
+## 👨‍💻 Author
+
+**Gokulnath T**
+
+GitHub: https://github.com/Gokulnath251
