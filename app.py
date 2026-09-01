@@ -82,6 +82,16 @@ button[data-baseweb="tab"][aria-selected="true"] {
 }
 div[data-baseweb="select"] * { color: #18253a !important; }
 div[data-testid="stDataFrame"] { border-radius: 10px; }
+
+.nav-note { color: #8fa8c7; font-size: 12px; margin-top: -8px; }
+div[role="radiogroup"] { gap: 4px; flex-wrap: wrap; }
+div[role="radiogroup"] label {
+    background: #111e33; border: 1px solid #29405f; border-radius: 8px;
+    padding: 7px 10px; margin: 0;
+}
+div[role="radiogroup"] label:has(input:checked) {
+    border-color: #ff4b4b; background: #18253a;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -266,19 +276,11 @@ else:
 # NAVIGATION
 # ============================================================
 
-(
-    team_tab,
-    team_h2h_tab,
-    batting_tab,
-    bowling_tab,
-    player_h2h_tab,
-    batter_lb_tab,
-    bowler_lb_tab,
-    venue_tab,
-    fielding_tab,
-    form_tab,
-    toss_tab,
-) = st.tabs([
+# Use a stateful horizontal navigation control instead of st.tabs().
+# Streamlit reruns the script whenever a selectbox changes; st.tabs()
+# does not preserve the active tab across those reruns, which caused
+# the app to jump back to Team Analysis.
+nav_options = [
     "📊 Team Analysis",
     "⚔️ Team Head-to-Head",
     "🏏 Batting Analysis",
@@ -290,14 +292,25 @@ else:
     "🤜 Fielding Analysis",
     "🔥 Recent Form",
     "🪙 Toss Analysis",
-])
+]
+
+if "active_tab" not in st.session_state:
+    st.session_state["active_tab"] = nav_options[0]
+
+active_tab = st.radio(
+    "Navigation",
+    nav_options,
+    key="active_tab",
+    horizontal=True,
+    label_visibility="collapsed",
+)
 
 
 # ============================================================
 # TEAM ANALYSIS
 # ============================================================
 
-with team_tab:
+if active_tab == "📊 Team Analysis":
 
     st.markdown(
         '<div class="section-title">📊 Team Performance Analysis</div>',
@@ -517,7 +530,7 @@ with team_tab:
 # TEAM HEAD-TO-HEAD
 # ============================================================
 
-with team_h2h_tab:
+if active_tab == "⚔️ Team Head-to-Head":
 
     st.markdown(
         '<div class="section-title">⚔️ Team Head-to-Head</div>',
@@ -713,7 +726,7 @@ with team_h2h_tab:
 # BATTING ANALYSIS
 # ============================================================
 
-with batting_tab:
+if active_tab == "🏏 Batting Analysis":
 
     st.markdown(
         '<div class="section-title">🏏 Batting Analysis</div>',
@@ -723,6 +736,14 @@ with batting_tab:
     batters = get_players(fb, "Batter")
 
     if batters:
+
+        # Keep the previously selected batter when the global season changes.
+        # If that player is not present in the new season, fall back safely.
+        previous_batter = st.session_state.get("batting_analysis_batter")
+        if previous_batter in batters:
+            st.session_state["batting_analysis_batter"] = previous_batter
+        elif previous_batter is not None:
+            st.session_state["batting_analysis_batter"] = batters[0]
 
         batter = st.selectbox(
             "Select Batter",
@@ -755,6 +776,47 @@ with batting_tab:
         with c4:
             metric("4s / 6s", f"{fours} / {sixes}")
 
+        # --------------------------------------------------------
+        # NEW: Season-wise batting performance
+        # --------------------------------------------------------
+        st.markdown(
+            '<div class="section-title">📈 Season-wise Batting Performance</div>',
+            unsafe_allow_html=True
+        )
+
+        season_batting = (
+            bd.groupby("Season")
+            .agg(
+                Runs=("BatsmanRun", "sum"),
+                Balls=("Wides", lambda s: (s == 0).sum())
+            )
+            .reset_index()
+        )
+
+        if not season_batting.empty:
+            season_batting["Strike Rate"] = (
+                season_batting["Runs"]
+                / season_batting["Balls"]
+                * 100
+            ).round(2)
+
+            season_batting = season_batting.sort_values("Season")
+
+            st.dataframe(
+                season_batting,
+                use_container_width=True,
+                hide_index=True
+            )
+
+            fig = px.line(
+                season_batting,
+                x="Season",
+                y="Runs",
+                markers=True,
+                title=f"{batter} — Runs by Season"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
         top = (
             fb.groupby("Batter")["BatsmanRun"]
             .sum()
@@ -784,7 +846,7 @@ with batting_tab:
 # BOWLING ANALYSIS
 # ============================================================
 
-with bowling_tab:
+if active_tab == "🎯 Bowling Analysis":
 
     st.markdown(
         '<div class="section-title">🎯 Bowling Analysis</div>',
@@ -794,6 +856,12 @@ with bowling_tab:
     bowlers = get_players(fb, "Bowler")
 
     if bowlers:
+
+        previous_bowler = st.session_state.get("bowling_analysis_bowler")
+        if previous_bowler in bowlers:
+            st.session_state["bowling_analysis_bowler"] = previous_bowler
+        elif previous_bowler is not None:
+            st.session_state["bowling_analysis_bowler"] = bowlers[0]
 
         bowler = st.selectbox(
             "Select Bowler",
@@ -856,7 +924,7 @@ with bowling_tab:
 # PLAYER HEAD-TO-HEAD
 # ============================================================
 
-with player_h2h_tab:
+if active_tab == "⚔️ Player Head-to-Head":
 
     st.markdown(
         '<div class="section-title">⚔️ Player Head-to-Head</div>',
@@ -869,6 +937,19 @@ with player_h2h_tab:
     if batters and bowlers:
 
         c1, c2 = st.columns(2)
+
+        # Preserve both matchup selections across season changes.
+        previous_h2h_batter = st.session_state.get("player_h2h_batter")
+        if previous_h2h_batter in batters:
+            st.session_state["player_h2h_batter"] = previous_h2h_batter
+        elif previous_h2h_batter is not None:
+            st.session_state["player_h2h_batter"] = batters[0]
+
+        previous_h2h_bowler = st.session_state.get("player_h2h_bowler")
+        if previous_h2h_bowler in bowlers:
+            st.session_state["player_h2h_bowler"] = previous_h2h_bowler
+        elif previous_h2h_bowler is not None:
+            st.session_state["player_h2h_bowler"] = bowlers[0]
 
         with c1:
             batter = st.selectbox(
@@ -1004,7 +1085,7 @@ with player_h2h_tab:
 # BATTERS LEADERBOARD
 # ============================================================
 
-with batter_lb_tab:
+if active_tab == "🏆 Batters Leaderboards":
 
     st.markdown(
         '<div class="section-title">🏆 Batters Leaderboard</div>',
@@ -1040,7 +1121,7 @@ with batter_lb_tab:
 # BOWLERS LEADERBOARD
 # ============================================================
 
-with bowler_lb_tab:
+if active_tab == "🏆 Bowlers Leaderboards":
 
     st.markdown(
         '<div class="section-title">🏆 Bowlers Leaderboard</div>',
@@ -1069,7 +1150,7 @@ with bowler_lb_tab:
 # VENUE ANALYSIS
 # ============================================================
 
-with venue_tab:
+if active_tab == "🏟️ Venue Analysis":
 
     st.markdown(
         '<div class="section-title">🏟️ Venue Analysis</div>',
@@ -1139,7 +1220,7 @@ with venue_tab:
 # FIELDING ANALYSIS
 # ============================================================
 
-with fielding_tab:
+if active_tab == "🤜 Fielding Analysis":
 
     st.markdown(
         '<div class="section-title">🤜 Fielding Analysis</div>',
@@ -1237,7 +1318,7 @@ with fielding_tab:
 # RECENT FORM
 # ============================================================
 
-with form_tab:
+if active_tab == "🔥 Recent Form":
 
     st.markdown(
         '<div class="section-title">🔥 Recent Team Form</div>',
@@ -1334,7 +1415,7 @@ with form_tab:
 # TOSS ANALYSIS
 # ============================================================
 
-with toss_tab:
+if active_tab == "🪙 Toss Analysis":
 
     st.markdown(
         '<div class="section-title">🪙 Toss Analysis</div>',
