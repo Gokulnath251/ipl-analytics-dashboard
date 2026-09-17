@@ -281,6 +281,7 @@ else:
 # does not preserve the active tab across those reruns, which caused
 # the app to jump back to Team Analysis.
 nav_options = [
+    "🏠 Overview",
     "📊 Team Analysis",
     "⚔️ Team Head-to-Head",
     "🏏 Batting Analysis",
@@ -304,6 +305,146 @@ active_tab = st.radio(
     horizontal=True,
     label_visibility="collapsed",
 )
+
+
+# ============================================================
+# OVERVIEW
+# ============================================================
+
+if active_tab == "🏠 Overview":
+
+    st.markdown(
+        '<div class="section-title">🏠 IPL Analytics Overview</div>',
+        unsafe_allow_html=True
+    )
+
+    # High-level numbers for the currently selected season scope.
+    total_matches = len(fm)
+    total_teams = len(get_teams(fm))
+    total_venues = (
+        fm["Venue"].astype(str).str.strip().replace("", pd.NA).nunique()
+        if "Venue" in fm.columns else 0
+    )
+
+    player_values = set()
+    for player_col in ["Batter", "Bowler"]:
+        if player_col in fb.columns:
+            player_values.update(
+                fb[player_col].astype(str).str.strip().replace("", pd.NA).dropna().unique()
+            )
+    total_players = len(player_values)
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    with c1:
+        metric("Matches", fmt(total_matches))
+    with c2:
+        metric("Teams", fmt(total_teams))
+    with c3:
+        metric("Players", fmt(total_players))
+    with c4:
+        metric("Venues", fmt(total_venues))
+
+    st.markdown(
+        '<div class="section-title">📌 Explore IPL</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        <div class="hero">
+            <div class="hero-label">IPL • MATCH INTELLIGENCE</div>
+            <div class="hero-title">Explore the game through data.</div>
+            <div class="hero-subtitle">
+                Compare teams and players, study venues and match trends,
+                explore batting and bowling records, and investigate IPL history
+                from the selected season range.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        st.markdown(
+            """
+            <div class="metric-card">
+                <div class="metric-label">🏏 PLAYERS</div>
+                <div class="metric-value">Batting & Bowling</div>
+                <p>Explore individual performance, season trends and player matchups.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with c2:
+        st.markdown(
+            """
+            <div class="metric-card">
+                <div class="metric-label">⚔️ TEAMS</div>
+                <div class="metric-value">Compare & Analyze</div>
+                <p>Study team records, head-to-head history, recent form and toss impact.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with c3:
+        st.markdown(
+            """
+            <div class="metric-card">
+                <div class="metric-label">📊 INSIGHTS</div>
+                <div class="metric-value">Discover Trends</div>
+                <p>Explore leaderboards, venues, fielding and match-level patterns.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    st.markdown(
+        '<div class="section-title">🧭 What you can explore</div>',
+        unsafe_allow_html=True
+    )
+
+    overview_table = pd.DataFrame({
+        "Section": [
+            "Team Analysis",
+            "Team Head-to-Head",
+            "Batting Analysis",
+            "Bowling Analysis",
+            "Player Head-to-Head",
+            "Leaderboards",
+            "Venue Analysis",
+            "Fielding Analysis",
+            "Recent Form",
+            "Toss Analysis",
+        ],
+        "What you can do": [
+            "Study team records and batting-first vs chasing performance.",
+            "Compare two teams across their IPL meetings.",
+            "Explore a batter's runs, average, strike rate and season performance.",
+            "Explore a bowler's wickets, economy, strike rate and season performance.",
+            "Analyze a batter vs bowler matchup.",
+            "Find top batting and bowling performances using different filters.",
+            "Study match history and average innings scores by venue.",
+            "Explore fielding involvements and dismissal types.",
+            "Review a team's latest five recorded matches.",
+            "Study toss results and toss-to-match outcomes.",
+        ],
+    })
+
+    st.dataframe(
+        overview_table,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.caption(
+        f"Showing data for: **{selected_season}** • "
+        "Use the navigation above to explore the dashboard."
+    )
 
 
 # ============================================================
